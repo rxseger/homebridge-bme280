@@ -14,6 +14,8 @@ Connect the BME280 chip to the I2C bus
 ## Configuration
 * `accessory`: "BME280"
 * `name`: descriptive name
+* `name_temperature` (optional): descriptive name for the temperature sensor
+* `name_humidity` (optional): descriptive name for the humidity sensor
 * `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
 If you get an I/O error, make sure the I2C address is correct (usually 0x76 or 0x77 depending on a jumper).
@@ -25,6 +27,8 @@ Example configuration:
         {
             "accessory": "BME280",
             "name": "Sensor",
+            "name_temperature": "Temperature",
+            "name_humidity": "Humidity",
             "options": {
               "i2cBusNo": 1,
               "i2cAddress": "0x76"

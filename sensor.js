@@ -16,6 +16,8 @@ class BME280Plugin
   constructor(log, config) {
     this.log = log;
     this.name = config.name;
+    this.name_temperature = config.name_temperature || this.name;
+    this.name_humidity = config.name_humidity || this.name;
     this.options = config.options || {};
 
     this.init = false;
@@ -32,13 +34,13 @@ class BME280Plugin
     })
     .catch(err => console.error(`BME280 initialization failed: ${err} `));
 
-    this.temperatureService = new Service.TemperatureSensor(this.name);
+    this.temperatureService = new Service.TemperatureSensor(this.name_temperature);
 
     this.temperatureService
       .getCharacteristic(Characteristic.CurrentTemperature)
       .on('get', this.getCurrentTemperature.bind(this));
 
-    this.humidityService = new Service.HumiditySensor(this.name);
+    this.humidityService = new Service.HumiditySensor(this.name_humidity);
     this.humidityService
       .getCharacteristic(Characteristic.CurrentRelativeHumidity)
       .on('get', this.getCurrentRelativeHumidity.bind(this));
