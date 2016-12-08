@@ -67,7 +67,7 @@ class BME280Plugin {
                 this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
                 this.temperatureService
                     .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
-                this.temperatureService
+                this.humidityService
                     .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
                 cb(null, roundInt(data.temperature_C));
             })
@@ -109,5 +109,5 @@ class BME280Plugin {
 }
 
 function roundInt(string) {
-    return Math.round(parseFloat(string));
+    return Math.round(parseFloat(string)*10)/10;
 }
