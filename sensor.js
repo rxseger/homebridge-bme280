@@ -39,15 +39,19 @@ class BME280Plugin {
 
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({
+                minValue: -100,
+                maxValue: 100
+            })
             .on('get', this.getCurrentTemperature.bind(this));
 
         this.temperatureService
             .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
 
         this.humidityService = new Service.HumiditySensor(this.name_humidity);
-//        this.humidityService
-//            .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-//            .on('get', this.getCurrentRelativeHumidity.bind(this));
+        //        this.humidityService
+        //            .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        //            .on('get', this.getCurrentRelativeHumidity.bind(this));
     }
 
     // refresh sensor data
@@ -109,5 +113,5 @@ class BME280Plugin {
 }
 
 function roundInt(string) {
-    return Math.round(parseFloat(string)*10)/10;
+    return Math.round(parseFloat(string) * 10) / 10;
 }
