@@ -19,6 +19,8 @@ class BME280Plugin {
         this.name = config.name;
         this.name_temperature = config.name_temperature || this.name;
         this.name_humidity = config.name_humidity || this.name;
+        this.refresh = config['refresh'] || 60; // Update every minute
+        this.debug = config['debug'] || false; // Enable debug logging
         this.options = config.options || {};
 
         this.init = false;
@@ -26,8 +28,15 @@ class BME280Plugin {
         if ('i2cBusNo' in this.options) this.options.i2cBusNo = parseInt(this.options.i2cBusNo);
         if ('i2cAddress' in this.options) this.options.i2cAddress = parseInt(this.options.i2cAddress);
         this.log(`BME280 sensor options: ${JSON.stringify(this.options)}`);
-        this.sensor = new bme280_sensor(this.options);
-        this.sensor.init()
+
+        try {
+            this.sensor = new bme280_sensor(this.options);
+        } catch (ex) {
+            this.log("BME280 initialization failed:", ex);
+        }
+
+        if (this.sensor)
+            this.sensor.init()
             .then(result => {
                 this.log(`BME280 initialization succeeded`);
                 this.init = true;
@@ -35,23 +44,27 @@ class BME280Plugin {
             })
             .catch(err => this.log(`BME280 initialization failed: ${err} `));
 
+
+        this.informationService = new Service.AccessoryInformation();
+
+        this.informationService
+            .setCharacteristic(Characteristic.Manufacturer, "Bosch")
+            .setCharacteristic(Characteristic.Model, "RPI-BME280")
+            .setCharacteristic(Characteristic.SerialNumber, this.device);
+
         this.temperatureService = new Service.TemperatureSensor(this.name_temperature);
 
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
-            .setProps({
-                minValue: -100,
-                maxValue: 100
-            })
             .on('get', this.getCurrentTemperature.bind(this));
 
         this.temperatureService
             .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
 
         this.humidityService = new Service.HumiditySensor(this.name_humidity);
-        //        this.humidityService
-        //            .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-        //            .on('get', this.getCurrentRelativeHumidity.bind(this));
+
+        setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+
     }
 
     // refresh sensor data
@@ -66,21 +79,26 @@ class BME280Plugin {
     }
 
     getCurrentTemperature(cb) {
-        this.sensor.readSensorData()
-            .then(data => {
-                this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-                this.temperatureService
-                    .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
-                this.humidityService
-                    .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
-                cb(null, roundInt(data.temperature_C));
-            })
-            .catch(err => {
-                this.log(`BME read error: ${err}`);
-                cb(err);
-            });
-    }
+        if (this.sensor) {
+            this.sensor.readSensorData()
+                .then(data => {
+                    this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
+                    this.temperatureService
+                        .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
+                    this.humidityService
+                        .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
+                    cb(null, roundInt(data.temperature_C));
+                })
+                .catch(err => {
+                    this.log(`BME read error: ${err}`);
+                    cb(err);
+                });
+        } else {
+            this.log("Error: BME280 Not Initalized");
+            cb(new Error("BME280 Not Initalized"));
+        }
 
+    }
 
     getCurrentRelativeHumidity(cb) {
         this.sensor.readSensorData()
@@ -92,6 +110,13 @@ class BME280Plugin {
                 this.log(`BME read error: ${err}`);
                 cb(err);
             });
+    }
+
+    devicePolling() {
+        if (this.debug)
+            this.log("Polling BME280");
+        this.temperatureService
+            .getCharacteristic(Characteristic.CurrentTemperature);
     }
 
     /* TODO
@@ -108,7 +133,7 @@ class BME280Plugin {
     */
 
     getServices() {
-        return [this.temperatureService, this.humidityService]
+        return [this.informationService, this.temperatureService, this.humidityService]
     }
 }
 

@@ -16,6 +16,8 @@ Connect the BME280 chip to the I2C bus
 * `name`: descriptive name
 * `name_temperature` (optional): descriptive name for the temperature sensor
 * `name_humidity` (optional): descriptive name for the humidity sensor
+* `debug`: Optional, more verbose logging
+* `refresh`: Optional, time interval for refreshing data in seconds, defaults to 60 seconds.
 * `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
 If you get an I/O error, make sure the I2C address is correct (usually 0x76 or 0x77 depending on a jumper).
@@ -48,4 +50,3 @@ This plugin creates two services: TemperatureSensor and HumiditySensor.
 ## License
 
 MIT
-
