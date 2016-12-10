@@ -1,6 +1,7 @@
 # homebridge-bme280
 
-[Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280) temperature/humidity sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge)
+[Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280)
+temperature/humidity/barometric pressure sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge)
 
 Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
@@ -46,6 +47,9 @@ This plugin creates two services: TemperatureSensor and HumiditySensor.
 * [homebridge-ds18b20](https://www.npmjs.com/package/homebridge-ds18b20)
 * [homebridge-dht-sensor](https://www.npmjs.com/package/homebridge-dht-sensor)
 * [homebridge-dht](https://www.npmjs.com/package/homebridge-dht)
+
+## Credits
+* NorthernMan54 - Barometric Pressure and Device Polling
 
 ## License
 
