@@ -58,6 +58,10 @@ class BME280Plugin {
 
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({
+                minValue: -100,
+                maxValue: 100
+            })
             .on('get', this.getCurrentTemperature.bind(this));
 
         this.temperatureService
