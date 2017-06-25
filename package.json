@@ -1,37 +1,37 @@
 {
-    "name": "homebridge-bme280",
-    "version": "1.1.0",
-    "description": "BME280 temperature/humidity/pressure sensor bridge for Homebridge: https://github.com/nfarina/homebridge\"",
-    "main": "sensor.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/rxseger/homebridge-bme280.git"
-    },
-    "keywords": [
-        "homebridge-plugin",
-        "bme280",
-        "temperature",
-        "humidity",
-        "pressure",
-        "sensor"
-    ],
-    "author": "rxserger",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/rxseger/homebridge-bme280/issues"
-    },
-    "engines": {
-        "node": ">=6.0.0",
-        "homebridge": ">=0.2.0",
-        "debug": "^2.2.0",
-        "mcuiot-logger": "^0.0.6"
-    },
-    "homepage": "https://github.com/rxseger/homebridge-bme280#readme",
-    "dependencies": {
-        "bme280-sensor": "0.0.8",
-        "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git"
-    }
+  "name": "homebridge-bme280",
+  "version": "1.1.1",
+  "description": "BME280 temperature/humidity/pressure sensor bridge for Homebridge: https://github.com/nfarina/homebridge\"",
+  "main": "sensor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rxseger/homebridge-bme280.git"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "bme280",
+    "temperature",
+    "humidity",
+    "pressure",
+    "sensor"
+  ],
+  "author": "rxserger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rxseger/homebridge-bme280/issues"
+  },
+  "engines": {
+    "node": ">=6.0.0",
+    "homebridge": ">=0.2.0",
+    "debug": "^2.2.0",
+    "mcuiot-logger": "^0.0.6"
+  },
+  "homepage": "https://github.com/rxseger/homebridge-bme280#readme",
+  "dependencies": {
+    "bme280-sensor": "0.0.8",
+    "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git"
+  }
 }
