@@ -22,7 +22,6 @@ class BME280Plugin {
         this.name_temperature = config.name_temperature || this.name;
         this.name_humidity = config.name_humidity || this.name;
         this.refresh = config['refresh'] || 60; // Update every minute
-        this.debug = config['debug'] || false; // Enable debug logging
         this.options = config.options || {};
         this.spreadsheetId = config['spreadsheetId'];
         if (this.spreadsheetId) {
@@ -86,11 +85,6 @@ class BME280Plugin {
             .then(data => {
                 this.log(`data = ${JSON.stringify(data, null, 2)}`);
                 this.data = data;
-
-                if (this.spreadsheetId) {
-                    debug("Data",data),
-                    this.logger.storeBME(this.name,result[0],temperature,humidity);
-                }
             })
             .catch(err => this.log(`BME280 read error: ${err}`))
     }
@@ -100,6 +94,10 @@ class BME280Plugin {
             this.sensor.readSensorData()
                 .then(data => {
                     this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
+                    if (this.spreadsheetId) {
+                        debug("Data",data);
+                        this.logger.storeBME(this.name,0,roundInt(data.temperature_C),roundInt(data.humidity),roundInt(data.pressure_hPa));
+                    }
                     this.temperatureService
                         .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
                     this.humidityService
@@ -108,6 +106,9 @@ class BME280Plugin {
                 })
                 .catch(err => {
                     this.log(`BME read error: ${err}`);
+                    if (this.spreadsheetId) {
+                        this.logger.storeBME(this.name,1,-999,-999,-999);
+                    }
                     cb(err);
                 });
         } else {
@@ -130,8 +131,7 @@ class BME280Plugin {
     }
 
     devicePolling() {
-        if (this.debug)
-            this.log("Polling BME280");
+            debug("Polling BME280");
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature).getValue();
     }

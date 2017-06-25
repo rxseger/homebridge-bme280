@@ -32,6 +32,6 @@
     "bme280-sensor": "0.0.8",
     "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
     "debug": "^2.2.0",
-    "mcuiot-logger": "^0.0.6"
+    "mcuiot-logger": "^0.0.7"
   }
 }
