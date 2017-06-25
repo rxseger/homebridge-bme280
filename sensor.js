@@ -25,7 +25,7 @@ class BME280Plugin {
         this.options = config.options || {};
         this.spreadsheetId = config['spreadsheetId'];
         if (this.spreadsheetId) {
-            this.log_event_counter = 0;
+            this.log_event_counter = 59;
             this.logger = new logger(this.spreadsheetId);
         }
 
