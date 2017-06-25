@@ -4,6 +4,8 @@ const bme280_sensor = require('bme280-sensor');
 
 let Service, Characteristic;
 var CommunityTypes;
+var debug = require('debug')('BME280');
+var logger = require("mcuiot-logger").logger;
 
 module.exports = (homebridge) => {
     Service = homebridge.hap.Service;
@@ -22,6 +24,10 @@ class BME280Plugin {
         this.refresh = config['refresh'] || 60; // Update every minute
         this.debug = config['debug'] || false; // Enable debug logging
         this.options = config.options || {};
+        this.spreadsheetId = config['spreadsheetId'];
+        if (this.spreadsheetId) {
+            this.logger = new logger(this.spreadsheetId);
+        }
 
         this.init = false;
         this.data = {};
@@ -80,6 +86,11 @@ class BME280Plugin {
             .then(data => {
                 this.log(`data = ${JSON.stringify(data, null, 2)}`);
                 this.data = data;
+
+                if (this.spreadsheetId) {
+                    debug("Data",data),
+                    this.logger.storeBME(this.name,result[0],temperature,humidity);
+                }
             })
             .catch(err => this.log(`BME280 read error: ${err}`))
     }
