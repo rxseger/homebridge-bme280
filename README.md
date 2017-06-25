@@ -43,7 +43,7 @@ Example configuration:
 
 This plugin creates two services: TemperatureSensor and HumiditySensor.
 
-# Optional - Enable access to Google Sheets to log data
+## Optional - Enable access to Google Sheets to log data
 
 This presumes you already have a google account, and have access to google drive/sheets already
 

@@ -25,13 +25,13 @@
   },
   "engines": {
     "node": ">=6.0.0",
-    "homebridge": ">=0.2.0",
-    "debug": "^2.2.0",
-    "mcuiot-logger": "^0.0.6"
+    "homebridge": ">=0.2.0"
   },
   "homepage": "https://github.com/rxseger/homebridge-bme280#readme",
   "dependencies": {
     "bme280-sensor": "0.0.8",
-    "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git"
+    "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
+    "debug": "^2.2.0",
+    "mcuiot-logger": "^0.0.6"
   }
 }
