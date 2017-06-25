@@ -95,8 +95,11 @@ class BME280Plugin {
                 .then(data => {
                     this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
                     if (this.spreadsheetId) {
-                        debug("Data",data);
-                        this.logger.storeBME(this.name,0,roundInt(data.temperature_C),roundInt(data.humidity),roundInt(data.pressure_hPa));
+                        this.log_event_counter = this.log_event_counter + 1;
+                        if (this.log_event_counter > 59) {
+                            this.logger.storeBME(this.name, 0, roundInt(data.temperature_C), roundInt(data.humidity), roundInt(data.pressure_hPa));
+                            this.log_event_counter = 0;
+                        }
                     }
                     this.temperatureService
                         .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
@@ -107,7 +110,7 @@ class BME280Plugin {
                 .catch(err => {
                     this.log(`BME read error: ${err}`);
                     if (this.spreadsheetId) {
-                        this.logger.storeBME(this.name,1,-999,-999,-999);
+                        this.logger.storeBME(this.name, 1, -999, -999, -999);
                     }
                     cb(err);
                 });
@@ -131,7 +134,7 @@ class BME280Plugin {
     }
 
     devicePolling() {
-            debug("Polling BME280");
+        debug("Polling BME280");
         this.temperatureService
             .getCharacteristic(Characteristic.CurrentTemperature).getValue();
     }
