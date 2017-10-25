@@ -1,6 +1,5 @@
 'use strict';
 
-//const bme280_sensor = require('bme280-sensor');
 const i2c = require('i2c');
 
 let Service, Characteristic;
@@ -70,6 +69,13 @@ class AM2320Plugin
 
   // refresh sensor data
   readSensorData(wire, cb) {
+    if (wire.lastUpdate !== undefined) {
+      var diff = process.hrtime(wire.lastUpdate);
+      if (diff[0] >= 2) {
+        cb(null, wire.lastValue);
+        return;
+      }
+    }
     var self = this;
     wire.writeByte(0x00, (err) => {
       setTimeout(() => {
@@ -84,6 +90,8 @@ class AM2320Plugin
                 cb(err);
                 return;
               }
+              wire.lastValue = data;
+              wire.lastUpdate = process.hrtime();
 	      cb(err, data);
             });
           }, 15);
