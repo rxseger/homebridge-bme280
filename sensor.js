@@ -1,6 +1,7 @@
 'use strict';
 
-const bme280_sensor = require('bme280-sensor');
+//const bme280_sensor = require('bme280-sensor');
+const i2c = require('i2c');
 
 let Service, Characteristic;
 
@@ -8,10 +9,10 @@ module.exports = (homebridge) => {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
 
-  homebridge.registerAccessory('homebridge-bme280', 'BME280', BME280Plugin);
+  homebridge.registerAccessory('homebridge-am2320', 'AM2320', AM2320Plugin);
 };
 
-class BME280Plugin
+class AM2320Plugin
 {
   constructor(log, config) {
     this.log = log;
@@ -24,15 +25,18 @@ class BME280Plugin
     this.data = {};
     if ('i2cBusNo' in this.options) this.options.i2cBusNo = parseInt(this.options.i2cBusNo);
     if ('i2cAddress' in this.options) this.options.i2cAddress = parseInt(this.options.i2cAddress);
-    console.log(`BME280 sensor options: ${JSON.stringify(this.options)}`);
-    this.sensor = new bme280_sensor(this.options);
-    this.sensor.init()
-      .then(result => {
-        console.log(`BME280 initialization succeeded`);
-        this.init = true;
-        this.readSensorData();
-    })
-    .catch(err => console.error(`BME280 initialization failed: ${err} `));
+    console.log(`AM23280 sensor options: ${JSON.stringify(this.options)}`);
+    this.sensor = new i2c(this.options.i2cAddress, { device: '/dev/i2c-' + this.options.i2cBusNo });
+    this.init = true;
+    setTimeout(() => {
+      this.readSensorData(this.sensor, function (err, data) {
+        if (err) {
+          console.log(`AM2320 read error: ${err}`);
+          return;
+        }
+        console.log(`data = ${JSON.stringify(data, null, 2)}`);
+      });
+    }, 1000);
 
     this.temperatureService = new Service.TemperatureSensor(this.name_temperature);
 
@@ -46,54 +50,72 @@ class BME280Plugin
       .on('get', this.getCurrentRelativeHumidity.bind(this));
   }
 
+  readRegister(wire, cb) {
+    const i = setInterval(() => {
+      wire.readBytes(0x00, 8, (err, res) => {
+        if (err) {
+          cb(err);
+          return;
+	}
+        if (res[0] != 0) {
+          var t = (((res[4] & 0x7f) << 8) + res[5]) / 10.0;
+          t = ((res[4] & 0x80) >> 7) == 1 ? t * (-1) : t;
+          var h = ((res[2] << 8) + res[3]) / 10.0;
+          clearInterval(i);
+          cb(err, { temperature: t, humidity: h });
+        }
+      });
+    }, 15);
+  }
+
   // refresh sensor data
-  readSensorData() {
-    if (!this.init) return;
-    this.sensor.readSensorData()
-      .then(data => {
-        console.log(`data = ${JSON.stringify(data, null, 2)}`);
-        this.data = data;
-    })
-    .catch(err => console.log(`BME280 read error: ${err}`))
+  readSensorData(wire, cb) {
+    var self = this;
+    wire.writeByte(0x00, (err) => {
+      setTimeout(() => {
+        wire.writeBytes(0x03, [0x00, 0x04], (err) => {
+          if (err) {
+            cb(err);
+            return;
+          }
+          setTimeout(() => {
+            self.readRegister(wire, (err, data) => {
+              if (err) {
+                cb(err);
+                return;
+              }
+	      cb(err, data);
+            });
+          }, 15);
+        });
+      }, 15);
+    });
   }
 
   getCurrentTemperature(cb) {
-    this.sensor.readSensorData()
-      .then(data => {
-        console.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-        cb(null, data.temperature_C);
-    })
-    .catch(err => {
-      console.log(`BME read error: ${err}`);
-      cb(err);
+    this.readSensorData(this.sensor, (err, data) => {
+      if (err) {
+        console.log(`AM2320 read error: ${err}`);
+        cb(err);
+	return;
+      }
+      console.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
+      cb(null, data.temperature);
     });
   }
-
 
   getCurrentRelativeHumidity(cb) {
-    this.sensor.readSensorData()
-      .then(data => {
-        console.log(`data(humi) = ${JSON.stringify(data, null, 2)}`);
-        cb(null, data.humidity);
-    })
-    .catch(err => {
-      console.log(`BME read error: ${err}`);
-      cb(err);
-    });
-  }
+    this.readSensorData(this.sensor, (err, data) => {
+      if (err) {
+        console.log(`AM2320 read error: ${err}`);
+        cb(err);
+	return;
+      }
+      console.log(`data(humi) = ${JSON.stringify(data, null, 2)}`);
+      cb(null, data.humidity);
 
-  /* TODO
-  getCurrentPressure(cb) {
-    this.sensor.readSensorData()
-      .then(data => {
-        cb(null, data.pressure_hPA);
-    })
-    .catch(err => {
-      console.log(`BME read error: ${err}`);
-      cb(err);
     });
   }
-  */
 
   getServices() {
     return [this.temperatureService, this.humidityService]
