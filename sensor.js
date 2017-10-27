@@ -20,6 +20,8 @@ class AM2320Plugin
     this.name_humidity = config.name_humidity || this.name;
     this.options = config.options || {};
 
+    this.promise = null;
+
     this.init = false;
     this.data = {};
     if ('i2cBusNo' in this.options) this.options.i2cBusNo = parseInt(this.options.i2cBusNo);
@@ -27,13 +29,16 @@ class AM2320Plugin
     console.log(`AM23280 sensor options: ${JSON.stringify(this.options)}`);
     this.sensor = new i2c(this.options.i2cAddress, { device: '/dev/i2c-' + this.options.i2cBusNo });
     this.init = true;
+
+    var self = this;
     setTimeout(() => {
-      this.readSensorData(this.sensor, function (err, data) {
-        if (err) {
-          console.log(`AM2320 read error: ${err}`);
-          return;
-        }
+      self.promise = this.readSensorData(this.sensor);
+      self.promise.then((data) => {
         console.log(`data = ${JSON.stringify(data, null, 2)}`);
+      }).catch((err) => {
+        console.log(`AM2320 read error: ${err}`);
+      }).then(() => {
+        self.promise = null;
       });
     }, 1000);
 
@@ -52,11 +57,7 @@ class AM2320Plugin
   readRegister(wire, cb) {
     const i = setInterval(() => {
       wire.readBytes(0x00, 8, (err, res) => {
-        if (err) {
-          cb(err);
-          return;
-	}
-        if (res[0] != 0) {
+        if (!err && res[0] != 0) {
           var t = (((res[4] & 0x7f) << 8) + res[5]) / 10.0;
           t = ((res[4] & 0x80) >> 7) == 1 ? t * (-1) : t;
           var h = ((res[2] << 8) + res[3]) / 10.0;
@@ -68,60 +69,68 @@ class AM2320Plugin
   }
 
   // refresh sensor data
-  readSensorData(wire, cb) {
-    if (wire.lastUpdate !== undefined) {
-      var diff = process.hrtime(wire.lastUpdate);
-      if (diff[0] < 2) {
-        cb(null, wire.lastValue);
-        return;
-      }
-    }
+  readSensorData(wire) {
     var self = this;
-    wire.writeByte(0x00, (err) => {
-      setTimeout(() => {
-        wire.writeBytes(0x03, [0x00, 0x04], (err) => {
-          if (err) {
-            cb(err);
-            return;
-          }
-          setTimeout(() => {
-            self.readRegister(wire, (err, data) => {
-              if (err) {
-                cb(err);
-                return;
-              }
-              wire.lastValue = data;
-              wire.lastUpdate = process.hrtime();
-	      cb(err, data);
-            });
-          }, 15);
-        });
-      }, 15);
+    return new Promise((resolve, reject) => {
+      if (wire.lastUpdate !== undefined) {
+        var diff = process.hrtime(wire.lastUpdate);
+        if (diff[0] < 30) {
+          resolve(wire.lastValue);
+        }
+      }
+      wire.writeByte(0x00, (err) => {
+        setTimeout(() => {
+          wire.writeBytes(0x03, [0x00, 0x04], (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            setTimeout(() => {
+              self.readRegister(wire, (err, data) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                wire.lastValue = data;
+                wire.lastUpdate = process.hrtime();
+	        resolve(data);
+              });
+            }, 15);
+          });
+        }, 15);
+      });
     });
   }
 
   getCurrentTemperature(cb) {
-    this.readSensorData(this.sensor, (err, data) => {
-      if (err) {
-        console.log(`AM2320 read error: ${err}`);
-        cb(err);
-	return;
-      }
+    var self = this;
+    if (!self.promise) {
+      self.promise = self.readSensorData(self.sensor);
+    }
+    self.promise.then((data) => {
       console.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
       cb(null, data.temperature);
+    }).catch((err) => {
+      console.log(`AM2320 read error: ${err}`);
+      cb(err);
+    }).then(() => {
+      self.promise = null;
     });
   }
 
   getCurrentRelativeHumidity(cb) {
-    this.readSensorData(this.sensor, (err, data) => {
-      if (err) {
-        console.log(`AM2320 read error: ${err}`);
-        cb(err);
-	return;
-      }
+    var self = this;
+    if (!self.promise) {
+      self.promise = self.readSensorData(self.sensor);
+    }
+    self.promise.then((data) => {
       console.log(`data(humi) = ${JSON.stringify(data, null, 2)}`);
       cb(null, data.humidity);
-
+    }).catch((err) => {
+      console.log(`AM2320 read error: ${err}`);
+      cb(err);
+    }).then(() => {
+      self.promise = null;
     });
   }
 
