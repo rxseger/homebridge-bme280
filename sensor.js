@@ -71,7 +71,7 @@ class AM2320Plugin
   readSensorData(wire, cb) {
     if (wire.lastUpdate !== undefined) {
       var diff = process.hrtime(wire.lastUpdate);
-      if (diff[0] >= 2) {
+      if (diff[0] < 2) {
         cb(null, wire.lastValue);
         return;
       }
