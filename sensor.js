@@ -55,17 +55,45 @@ class AM2320Plugin
   }
 
   readRegister(wire, cb) {
-    const i = setInterval(() => {
-      wire.readBytes(0x00, 8, (err, res) => {
-        if (!err && res[0] != 0) {
-          var t = (((res[4] & 0x7f) << 8) + res[5]) / 10.0;
-          t = ((res[4] & 0x80) >> 7) == 1 ? t * (-1) : t;
-          var h = ((res[2] << 8) + res[3]) / 10.0;
-          clearInterval(i);
-          cb(err, { temperature: t, humidity: h });
+    return new Promise((resolve, reject) => {
+      var counter = 0;
+      const i = setInterval(() => {
+        wire.readBytes(0x00, 8, (err, res) => {
+          if (err || res[0] == 0) {
+            if (++counter > 100) {
+              clearInterval(i);
+              reject(err); 
+            } 
+          } else {
+            var t = (((res[4] & 0x7f) << 8) + res[5]) / 10.0;
+            t = ((res[4] & 0x80) >> 7) == 1 ? t * (-1) : t;
+            var h = ((res[2] << 8) + res[3]) / 10.0;
+            clearInterval(i);
+            resolve({ temperature: t, humidity: h });
+          }
+        });
+      }, 15);
+    });
+  }
+
+  wakeup(wire) {
+    return new Promise((resolve, reject) => {
+      wire.writeByte(0x00, (err) => {
+        setTimeout(resolve, 15);
+      });
+    });
+  }
+
+  writeRegister(wire, bytes) {
+    return new Promise((resolve, reject) => {
+      wire.writeBytes(0x03, bytes, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          setTimeout(resolve, 15);
         }
       });
-    }, 15);
+    });
   }
 
   // refresh sensor data
@@ -78,26 +106,17 @@ class AM2320Plugin
           resolve(wire.lastValue);
         }
       }
-      wire.writeByte(0x00, (err) => {
-        setTimeout(() => {
-          wire.writeBytes(0x03, [0x00, 0x04], (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            setTimeout(() => {
-              self.readRegister(wire, (err, data) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-                wire.lastValue = data;
-                wire.lastUpdate = process.hrtime();
-	        resolve(data);
-              });
-            }, 15);
-          });
-        }, 15);
+
+      self.wakeup(wire).then(() => {
+        return self.writeRegister(wire, [0x00, 0x04]);
+      }).then(() => {
+        return self.readRegister(wire);
+      }).then((data) => {
+        wire.lastValue = data;
+        wire.lastUpdate = process.hrtime();
+	resolve(data);
+      }).catch((err) => {
+        reject(err);
       });
     });
   }
