@@ -1,49 +1,40 @@
-# homebridge-bme280
+# homebridge-am2320
 
-[Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280) temperature/humidity sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge)
-
-Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
+[ASONG AM2320](https://akizukidenshi.com/download/ds/aosong/AM2320.pdf) temperature/humidity sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge)
 
 ## Installation
 1.	Install Homebridge using `npm install -g homebridge`
-2.	Install this plugin `npm install -g homebridge-bme280`
+2.	Install this plugin `npm install -g homebridge-thermometer-am2320`
 3.	Update your configuration file - see below for an example
 
-Connect the BME280 chip to the I2C bus
+Connect the AM2320 chip to the I2C bus
 
 ## Configuration
-* `accessory`: "BME280"
+* `accessory`: "AM2320"
 * `name`: descriptive name
 * `name_temperature` (optional): descriptive name for the temperature sensor
 * `name_humidity` (optional): descriptive name for the humidity sensor
-* `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
-If you get an I/O error, make sure the I2C address is correct (usually 0x76 or 0x77 depending on a jumper).
+If you get an I/O error, make sure the I2C address is correct (usually 0x5c depending on a jumper).
 
 Example configuration:
 
 ```json
     "accessories": [
         {
-            "accessory": "BME280",
+            "accessory": "AM2320",
             "name": "Sensor",
             "name_temperature": "Temperature",
             "name_humidity": "Humidity",
             "options": {
               "i2cBusNo": 1,
-              "i2cAddress": "0x76"
+              "i2cAddress": "0x5c"
             }
         }
     ]
 ```
 
 This plugin creates two services: TemperatureSensor and HumiditySensor.
-
-## See also
-
-* [homebridge-ds18b20](https://www.npmjs.com/package/homebridge-ds18b20)
-* [homebridge-dht-sensor](https://www.npmjs.com/package/homebridge-dht-sensor)
-* [homebridge-dht](https://www.npmjs.com/package/homebridge-dht)
 
 ## License
 
