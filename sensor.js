@@ -1,6 +1,7 @@
 'use strict';
 
 const i2c = require('i2c');
+const _ = require('lodash');
 
 let Service, Characteristic;
 
@@ -18,7 +19,14 @@ class AM2320Plugin
     this.name = config.name;
     this.name_temperature = config.name_temperature || this.name;
     this.name_humidity = config.name_humidity || this.name;
-    this.options = config.options || {};
+    this.options = _.defaults({}, config.options, {
+      temperature: {
+        rate: 1.0
+      },
+      humidity: {
+        rate: 1.0
+      }
+    });
 
     this.promise = null;
 
@@ -128,7 +136,7 @@ class AM2320Plugin
     }
     self.promise.then((data) => {
       console.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-      cb(null, data.temperature);
+      cb(null, data.temperature * self.options.temperature.rate);
     }).catch((err) => {
       console.log(`AM2320 read error: ${err}`);
       cb(err);
@@ -144,7 +152,7 @@ class AM2320Plugin
     }
     self.promise.then((data) => {
       console.log(`data(humi) = ${JSON.stringify(data, null, 2)}`);
-      cb(null, data.humidity);
+      cb(null, data.humidity * self.options.humidity.rate);
     }).catch((err) => {
       console.log(`AM2320 read error: ${err}`);
       cb(err);

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-thermometer-am2320",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "AM2320 temperature/humidity sensor bridge for Homebridge: https://github.com/nfarina/homebridge\"",
   "main": "sensor.js",
   "scripts": {
@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/KAWABATANorio/homebridge-am2320#readme",
   "dependencies": {
-    "i2c": "^0.2.3"
+    "i2c": "^0.2.3",
+    "lodash": "^4.17.4"
   }
 }
