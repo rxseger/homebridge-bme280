@@ -1,6 +1,6 @@
 {
   "name": "homebridge-bme280",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "BME280 temperature/humidity/pressure sensor bridge for Homebridge: https://github.com/nfarina/homebridge\"",
   "main": "sensor.js",
   "scripts": {
@@ -29,6 +29,9 @@
   },
   "homepage": "https://github.com/rxseger/homebridge-bme280#readme",
   "dependencies": {
-    "bme280-sensor": "0.0.8"
+    "bme280-sensor": "0.0.8",
+    "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
+    "debug": "^2.2.0",
+    "mcuiot-logger": "^0.0.7"
   }
 }
