@@ -50,8 +50,7 @@ class BME280Plugin {
         this.log(`BME280 initialization succeeded`);
         this.init = true;
 
-        this.temperatureService
-          .getCharacteristic(Characteristic.CurrentTemperature).getValue();
+        this.devicePolling.bind(this);
       })
       .catch(err => this.log(`BME280 initialization failed: ${err} `));
 
@@ -84,82 +83,21 @@ class BME280Plugin {
 
   }
 
-  // refresh sensor data
-  readSensorData() {
-    if (!this.init) return;
-    this.sensor.readSensorData()
-      .then(data => {
-        this.log(`data = ${JSON.stringify(data, null, 2)}`);
-        this.data = data;
-      })
-      .catch(err => this.log(`BME280 read error: ${err}`))
-  }
-
-  getCurrentTemperature(cb) {
-    if (this.sensor) {
-      this.sensor.readSensorData()
-        .then(data => {
-          this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-          if (this.spreadsheetId) {
-            this.log_event_counter = this.log_event_counter + 1;
-            if (this.log_event_counter > 59) {
-              that.loggingService.addEntry({
-                time: moment().unix(),
-                temp: roundInt(data.temperature_C),
-                pressure: roundInt(data.pressure_hPa),
-                humidity: roundInt(data.humidity)
-              });
-              this.logger.storeBME(this.name, 0, roundInt(data.temperature_C), roundInt(data.humidity), roundInt(data.pressure_hPa));
-              this.log_event_counter = 0;
-            }
-          }
-          this.temperatureService
-            .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
-          this.humidityService
-            .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
-          cb(null, roundInt(data.temperature_C));
-        })
-        .catch(err => {
-          this.log(`BME read error: ${err}`);
-          if (this.spreadsheetId) {
-            this.logger.storeBME(this.name, 1, -999, -999, -999);
-          }
-          cb(err);
-        });
-    } else {
-      this.log("Error: BME280 Not Initalized");
-      cb(new Error("BME280 Not Initalized"));
-    }
-
-  }
-
-  getCurrentRelativeHumidity(cb) {
-    this.sensor.readSensorData()
-      .then(data => {
-        this.log(`data(humi) = ${JSON.stringify(data, null, 2)}`);
-        cb(null, data.humidity);
-      })
-      .catch(err => {
-        this.log(`BME read error: ${err}`);
-        cb(err);
-      });
-  }
-
   devicePolling() {
     debug("Polling BME280");
     if (this.sensor) {
       this.sensor.readSensorData()
         .then(data => {
           this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
+          this.loggingService.addEntry({
+            time: moment().unix(),
+            temp: roundInt(data.temperature_C),
+            pressure: roundInt(data.pressure_hPa),
+            humidity: roundInt(data.humidity)
+          });
           if (this.spreadsheetId) {
             this.log_event_counter = this.log_event_counter + 1;
             if (this.log_event_counter > 59) {
-              this.loggingService.addEntry({
-                time: moment().unix(),
-                temp: roundInt(data.temperature_C),
-                pressure: roundInt(data.pressure_hPa),
-                humidity: roundInt(data.humidity)
-              });
               this.logger.storeBME(this.name, 0, roundInt(data.temperature_C), roundInt(data.humidity), roundInt(data.pressure_hPa));
               this.log_event_counter = 0;
             }
