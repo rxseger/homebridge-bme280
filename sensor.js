@@ -1,11 +1,12 @@
 'use strict';
 
 const bme280_sensor = require('bme280-sensor');
+var debug = require('debug')('BME280');
+var logger = require("mcuiot-logger").logger;
+const moment = require('moment');
 
 let Service, Characteristic;
 var CommunityTypes;
-var debug = require('debug')('BME280');
-var logger = require("mcuiot-logger").logger;
 var FakeGatoHistoryService;
 
 module.exports = (homebridge) => {

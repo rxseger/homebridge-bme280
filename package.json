@@ -33,6 +33,7 @@
     "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
     "debug": "^2.2.0",
     "mcuiot-logger": "^0.0.7",
+    "moment": "^2.18.1",
     "fakegato-history": "simont77/fakegato-history"
   }
 }
