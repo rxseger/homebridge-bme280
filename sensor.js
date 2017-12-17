@@ -174,6 +174,7 @@ class BME280Plugin {
         })
         .catch(err => {
           this.log(`BME read error: ${err}`);
+          debug(err.stack);
           if (this.spreadsheetId) {
             this.logger.storeBME(this.name, 1, -999, -999, -999);
           }
