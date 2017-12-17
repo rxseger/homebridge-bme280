@@ -6,12 +6,13 @@ let Service, Characteristic;
 var CommunityTypes;
 var debug = require('debug')('BME280');
 var logger = require("mcuiot-logger").logger;
-var FakeGatoHistoryService = require('fakegato-history')(homebridge);
+var FakeGatoHistoryService;
 
 module.exports = (homebridge) => {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     CommunityTypes = require('hap-nodejs-community-types')(homebridge);
+    FakeGatoHistoryService = require('fakegato-history')(homebridge);
 
     homebridge.registerAccessory('homebridge-bme280', 'BME280', BME280Plugin);
 };
