@@ -153,7 +153,7 @@ class BME280Plugin {
           if (this.spreadsheetId) {
             this.log_event_counter = this.log_event_counter + 1;
             if (this.log_event_counter > 59) {
-              that.loggingService.addEntry({
+              this.loggingService.addEntry({
                 time: moment().unix(),
                 temp: roundInt(data.temperature_C),
                 pressure: roundInt(data.pressure_hPa),
@@ -180,7 +180,6 @@ class BME280Plugin {
         });
     } else {
       this.log("Error: BME280 Not Initalized");
-      cb(new Error("BME280 Not Initalized"));
     }
   }
 
