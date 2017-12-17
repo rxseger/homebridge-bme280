@@ -11,6 +11,10 @@ temperature/humidity/barometric pressure sensor service plugin for [Homebridge](
 
 Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
+# Build Instructions
+
+Detailed build instructions are available here. https://www.instructables.com/id/Connect-Your-RaspberryPI-to-the-BME280-Temperature/
+
 ## Installation
 1.	Install Homebridge using `npm install -g homebridge`
 2.	Install this plugin `npm install -g homebridge-bme280`
