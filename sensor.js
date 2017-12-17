@@ -6,6 +6,7 @@ let Service, Characteristic;
 var CommunityTypes;
 var debug = require('debug')('BME280');
 var logger = require("mcuiot-logger").logger;
+var FakeGatoHistoryService = require('./fakegato-history')(homebridge);
 
 module.exports = (homebridge) => {
     Service = homebridge.hap.Service;
@@ -67,8 +68,8 @@ class BME280Plugin {
             .setProps({
                 minValue: -100,
                 maxValue: 100
-            })
-            .on('get', this.getCurrentTemperature.bind(this));
+            });
+    //        .on('get', this.getCurrentTemperature.bind(this));
 
         this.temperatureService
             .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
@@ -76,6 +77,8 @@ class BME280Plugin {
         this.humidityService = new Service.HumiditySensor(this.name_humidity);
 
         setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+
+        this.loggingService = new FakeGatoHistoryService("weather", this.temperatureService);
 
     }
 
@@ -98,6 +101,7 @@ class BME280Plugin {
                     if (this.spreadsheetId) {
                         this.log_event_counter = this.log_event_counter + 1;
                         if (this.log_event_counter > 59) {
+                            that.loggingService.addEntry({time: moment().unix(), temp:roundInt(data.temperature_C), pressure:roundInt(data.pressure_hPa), humidity:roundInt(data.humidity)});
                             this.logger.storeBME(this.name, 0, roundInt(data.temperature_C), roundInt(data.humidity), roundInt(data.pressure_hPa));
                             this.log_event_counter = 0;
                         }
@@ -141,7 +145,7 @@ class BME280Plugin {
     }
 
     getServices() {
-        return [this.informationService, this.temperatureService, this.humidityService]
+        return [this.informationService, this.temperatureService, this.humidityService,this.loggingService]
     }
 }
 

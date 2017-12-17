@@ -90,6 +90,7 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 
 ## Credits
 * NorthernMan54 - Barometric Pressure and Device Polling
+* simont77 - History Service
 
 ## License
 
