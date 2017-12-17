@@ -6,7 +6,7 @@ let Service, Characteristic;
 var CommunityTypes;
 var debug = require('debug')('BME280');
 var logger = require("mcuiot-logger").logger;
-var FakeGatoHistoryService = require('./fakegato-history')(homebridge);
+var FakeGatoHistoryService = require('fakegato-history')(homebridge);
 
 module.exports = (homebridge) => {
     Service = homebridge.hap.Service;
