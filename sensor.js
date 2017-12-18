@@ -90,7 +90,7 @@ class BME280Plugin {
       this.sensor.readSensorData()
         .then(data => {
           this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-          if (!(this.log_event_counter[response.Hostname] % 10)) {
+          if (!(this.log_event_counter % 10)) {
             this.loggingService.addEntry({
               time: moment().unix(),
               temp: roundInt(data.temperature_C),
