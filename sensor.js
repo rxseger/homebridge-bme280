@@ -79,6 +79,7 @@ class BME280Plugin {
 
     setInterval(this.devicePolling.bind(this), this.refresh * 1000);
 
+    this.temperatureService.log = this.log;
     this.loggingService = new FakeGatoHistoryService("weather", this.temperatureService);
 
   }
@@ -89,12 +90,14 @@ class BME280Plugin {
       this.sensor.readSensorData()
         .then(data => {
           this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-          this.loggingService.addEntry({
-            time: moment().unix(),
-            temp: roundInt(data.temperature_C),
-            pressure: roundInt(data.pressure_hPa),
-            humidity: roundInt(data.humidity)
-          });
+          if (!(this.log_event_counter[response.Hostname] % 10)) {
+            this.loggingService.addEntry({
+              time: moment().unix(),
+              temp: roundInt(data.temperature_C),
+              pressure: roundInt(data.pressure_hPa),
+              humidity: roundInt(data.humidity)
+            });
+          }
           if (this.spreadsheetId) {
             this.log_event_counter = this.log_event_counter + 1;
             if (this.log_event_counter > 59) {
