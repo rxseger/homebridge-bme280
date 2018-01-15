@@ -1,4 +1,5 @@
 .gitignore
 node_modules/
+package-lock.json
 publish.sh
 npm-debug.log

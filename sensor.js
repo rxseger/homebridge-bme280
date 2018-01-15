@@ -4,6 +4,8 @@ const bme280_sensor = require('bme280-sensor');
 var debug = require('debug')('BME280');
 var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
+var os = require("os");
+var hostname = os.hostname();
 
 let Service, Characteristic;
 var CommunityTypes;
@@ -60,7 +62,8 @@ class BME280Plugin {
     this.informationService
       .setCharacteristic(Characteristic.Manufacturer, "Bosch")
       .setCharacteristic(Characteristic.Model, "RPI-BME280")
-      .setCharacteristic(Characteristic.SerialNumber, this.device);
+      .setCharacteristic(Characteristic.SerialNumber, hostname+"-"+this.name)
+      .setCharacteristic(Characteristic.FirmwareRevision, require('./package.json').version);
 
     this.temperatureService = new Service.TemperatureSensor(this.name_temperature);
 
