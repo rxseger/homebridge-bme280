@@ -8,13 +8,13 @@ var os = require("os");
 var hostname = os.hostname();
 
 let Service, Characteristic;
-var CommunityTypes;
+var CustomCharacteristic;
 var FakeGatoHistoryService;
 
 module.exports = (homebridge) => {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  CommunityTypes = require('hap-nodejs-community-types')(homebridge);
+  CustomCharacteristic = require('./lib/CustomCharacteristic.js')(homebridge);
   FakeGatoHistoryService = require('fakegato-history')(homebridge);
 
   homebridge.registerAccessory('homebridge-bme280', 'BME280', BME280Plugin);
@@ -76,7 +76,7 @@ class BME280Plugin {
     //        .on('get', this.getCurrentTemperature.bind(this));
 
     this.temperatureService
-      .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
+      .addCharacteristic(CustomCharacteristic.AtmosphericPressureLevel);
 
     this.humidityService = new Service.HumiditySensor(this.name_humidity);
 
@@ -111,7 +111,7 @@ class BME280Plugin {
           this.temperatureService
             .setCharacteristic(Characteristic.CurrentTemperature, roundInt(data.temperature_C));
           this.temperatureService
-            .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
+            .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, roundInt(data.pressure_hPa));
           this.humidityService
             .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
 
