@@ -1,9 +1,19 @@
 # homebridge-bme280
 
 [Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280)
-temperature/humidity/barometric pressure sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge)
+temperature/humidity/barometric pressure sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge).
+
+[![NPM Downloads](https://img.shields.io/npm/dm/homebridge-bme280.svg?style=flat)](https://npmjs.org/package/homebridge-bme280)
+
+* Display of temperature, humidity and Barometric Pressure from a BME280 connected to a RaspberryPI.
+* Archives results every hour to a google spreadsheet
+* Support the graphing feature of the Eve app for trends
 
 Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
+
+# Build Instructions
+
+Detailed build instructions are available here. https://www.instructables.com/id/Connect-Your-RaspberryPI-to-the-BME280-Temperature/
 
 ## Installation
 1.	Install Homebridge using `npm install -g homebridge`
@@ -90,6 +100,7 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 
 ## Credits
 * NorthernMan54 - Barometric Pressure and Device Polling
+* simont77 - History Service
 
 ## License
 
