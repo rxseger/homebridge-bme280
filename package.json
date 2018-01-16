@@ -33,6 +33,6 @@
     "debug": "^2.2.0",
     "mcuiot-logger": "^0.0.7",
     "moment": "^2.18.1",
-    "fakegato-history": ">0.3.5"
+    "fakegato-history": "^0.3.5"
   }
 }
