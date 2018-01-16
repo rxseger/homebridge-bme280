@@ -62,7 +62,7 @@ class BME280Plugin {
     this.informationService
       .setCharacteristic(Characteristic.Manufacturer, "Bosch")
       .setCharacteristic(Characteristic.Model, "RPI-BME280")
-      .setCharacteristic(Characteristic.SerialNumber, hostname+"-"+hostname)
+      .setCharacteristic(Characteristic.SerialNumber, hostname + "-" + hostname)
       .setCharacteristic(Characteristic.FirmwareRevision, require('./package.json').version);
 
     this.temperatureService = new Service.TemperatureSensor(this.name_temperature);
@@ -93,14 +93,14 @@ class BME280Plugin {
       this.sensor.readSensorData()
         .then(data => {
           this.log(`data(temp) = ${JSON.stringify(data, null, 2)}`);
-          if (!(this.log_event_counter % 10)) {
-            this.loggingService.addEntry({
-              time: moment().unix(),
-              temp: roundInt(data.temperature_C),
-              pressure: roundInt(data.pressure_hPa),
-              humidity: roundInt(data.humidity)
-            });
-          }
+
+          this.loggingService.addEntry({
+            time: moment().unix(),
+            temp: roundInt(data.temperature_C),
+            pressure: roundInt(data.pressure_hPa),
+            humidity: roundInt(data.humidity)
+          });
+
           if (this.spreadsheetId) {
             this.log_event_counter = this.log_event_counter + 1;
             if (this.log_event_counter > 59) {
