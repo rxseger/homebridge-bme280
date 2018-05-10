@@ -56,6 +56,7 @@ Connect the BME680 chip to the I2C bus
 * `name`: descriptive name
 * `name_temperature` (optional): descriptive name for the temperature sensor
 * `name_humidity` (optional): descriptive name for the humidity sensor
+* `name_air_quality` (optional): descriptive name for the air quality sensor
 * `refresh`: Optional, time interval for refreshing data in seconds, defaults to 60 seconds.
 * `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 * `spreadsheetId` ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567". (TODO: not implemented, yet)
