@@ -295,14 +295,12 @@
             this.iaqProcess.stdout.setEncoding('utf8');
             this.iaqProcess.once('error', (error) => {
                 this.cleanup();
-                this.log("iaqProcess: ERROR");
-                debugger;
+                this.log("ERROR: bsec_bme680 failed");
                 this.log(error);
             });
             this.iaqProcess.stderr.once('data', (data) => {
                 this.cleanup();
-                this.log("iaqProcess: ERROR: stderr");
-                debugger;
+                this.log("ERROR: bsec_bme680 does not run without errors, ensure that bsec_iaq.config is in the homebridge storagePath (e.g. ~./homebridge) and the directory is writable");
                 this.log(data);
             });
             this.iaqProcess.stdout.on('data', (data) => {
