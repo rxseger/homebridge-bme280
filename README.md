@@ -1,10 +1,10 @@
 # homebridge-bme680
 
-EXPERIMENTAL FORK from https://github.com/rxseger/homebridge-bme280
-Relies on 
+EXPERIMENTAL fork from https://github.com/rxseger/homebridge-bme280 offering initial bme680 support for homebridge.
+
+Uses 
 * https://github.com/trho/bsec_bme680_linux (fork from https://github.com/alexh-name/bsec_bme680_linux with json output) which relies on the closed source BME680 driver by Bosch [BME680_driver](https://github.com/BoschSensortec/BME680_driver) to calculate IAQ (Indoor Air Quality)
 * https://github.com/jorisvervuurt/jvsbme680
-
 
 Limitations:
 * Only supports storage "fs" right now
@@ -82,6 +82,8 @@ Example configuration:
 This plugin creates two services: TemperatureSensor and HumiditySensor.
 
 ## Optional - Enable access to Google Sheets to log data
+
+TODO: not implemented, yet
 
 This presumes you already have a google account, and have access to google drive/sheets already
 

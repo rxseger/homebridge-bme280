@@ -5,8 +5,6 @@ import { spawn, exec, ChildProcess } from "child_process";
 import { inherits } from "util";
 const path = require('path');
 
-//const bme280_sensor = require('bme280-sensor');
-//var debug = require('debug')('BME280');
 const bme680_sensor = require('jvsbme680');
 var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
@@ -22,6 +20,7 @@ var FakeGatoHistoryService;
 let EveAirQualityPpmCharacteristic;
 let EveAirQualityUnknownCharacteristic;
 
+// TODO: make configurable
 const REFRESH_TIME_IN_MINUTES = 5;
 
 const CO2_MAX_VALUE = 3000; // I am assuming that iaq 500 ~ 3000 ppm
@@ -183,7 +182,7 @@ class BME680Plugin {
     this.loggingService = new FakeGatoHistoryService("room", this.temperatureService,
       {
         storage: 'fs',
-        disableTimer: true, // timer is not triggered?
+        disableTimer: true, // timer is not triggered. Therefore disabling timer service an relying own interval
         filename: this.name + ".json"
       });
     this.spawnIAQProcess();
