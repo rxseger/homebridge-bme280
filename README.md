@@ -1,14 +1,17 @@
 # homebridge-bme680
 
-EXPERIMENTAL fork from https://github.com/rxseger/homebridge-bme280 offering initial bme680 support for homebridge.
+EXPERIMENTAL fork from https://github.com/rxseger/homebridge-bme280 providing initial bme680 support for homebridge.
 
 Uses 
 * https://github.com/trho/bsec_bme680_linux (fork from https://github.com/alexh-name/bsec_bme680_linux with json output) which relies on the closed source BME680 driver by Bosch [BME680_driver](https://github.com/BoschSensortec/BME680_driver) to calculate IAQ (Indoor Air Quality)
 * https://github.com/jorisvervuurt/jvsbme680
 * The original IAQ value (0-500) is shown as a fake VOCDensity characteristic without available history
 
+Tested with Pimoroni's BME680 breakout board (https://shop.pimoroni.com/collections/electronics/products/bme680) 
+
 Limitations:
-* Only supports storage "fs" right now
+* Only supports storage "fs", yet
+* i2c address is not configurable, yet 
 * Since it is based on the [fakegato-history](https://github.com/simont77/fakegato-history) library the accessory only shows up in the Eve app and not in Apple Home.
 
 Uses heuristic factor to convert between Bosch BSEC IAQ (Indoor Air Quality) and Eve Co2 ppm:
@@ -136,8 +139,11 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 
 
 ## Credits
+* 
 * NorthernMan54 - Barometric Pressure and Device Polling
 * simont77 - History Service
+* alexh-name - C wrapper for BME680 sensor BSEC library
+* jorisvervuurt - Node.js module for Pimoroni's BME680 Breakout
 
 ## License
 
