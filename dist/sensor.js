@@ -125,14 +125,15 @@
                 .addCharacteristic(EveAirQualityPpmCharacteristic);
             this.airQualitySensor
                 .addCharacteristic(EveAirQualityUnknownCharacteristic);
-            // Used for showing BSEC IAQ value:
+            // Fake VOCDensity sensor used for showing BSEC IAQ value (0-500)
+            // There is no history support for this value
             this.airQualitySensor
                 .addCharacteristic(Characteristic.VOCDensity);
             this.airQualitySensor
                 .getCharacteristic(Characteristic.VOCDensity)
                 .setProps({
                 minValue: 0,
-                maxValue: 50
+                maxValue: 500
             });
             this.airQualitySensor.log = this.log;
             this.temperatureService.log = this.log;
@@ -228,6 +229,7 @@
                         .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
                     this.airQualitySensor
                         .setCharacteristic(EveAirQualityPpmCharacteristic, roundInt(event.ppm));
+                    // Optional
                     if (this.iaqData) {
                         this.airQualitySensor
                             .setCharacteristic(Characteristic.VOCDensity, roundInt(this.iaqData.iaq));

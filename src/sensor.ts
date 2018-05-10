@@ -166,14 +166,15 @@ class BME680Plugin {
     this.airQualitySensor
       .addCharacteristic(EveAirQualityUnknownCharacteristic);
 
-    // Used for showing BSEC IAQ value:
+    // Fake VOCDensity sensor used for showing BSEC IAQ value (0-500)
+    // There is no history support for this value
     this.airQualitySensor
       .addCharacteristic(Characteristic.VOCDensity);
     this.airQualitySensor
       .getCharacteristic(Characteristic.VOCDensity)
       .setProps({
         minValue: 0,
-        maxValue: 50
+        maxValue: 500
       });
 
     this.airQualitySensor.log = this.log;
@@ -182,7 +183,7 @@ class BME680Plugin {
     this.loggingService = new FakeGatoHistoryService("room", this.temperatureService,
       {
         storage: 'fs',
-        disableTimer: true, // timer is not triggered. Therefore disabling timer service an relying own interval
+        disableTimer: true, // timer is not triggered; therefore disabling timer and relying own interval updates
         filename: this.name + ".json"
       });
     this.spawnIAQProcess();
@@ -280,6 +281,7 @@ class BME680Plugin {
           this.airQualitySensor
             .setCharacteristic(EveAirQualityPpmCharacteristic, roundInt(event.ppm));
 
+            // Optional
           if (this.iaqData) {
             this.airQualitySensor
               .setCharacteristic(Characteristic.VOCDensity, roundInt(this.iaqData.iaq));

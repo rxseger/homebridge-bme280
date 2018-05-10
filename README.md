@@ -5,6 +5,7 @@ EXPERIMENTAL fork from https://github.com/rxseger/homebridge-bme280 offering ini
 Uses 
 * https://github.com/trho/bsec_bme680_linux (fork from https://github.com/alexh-name/bsec_bme680_linux with json output) which relies on the closed source BME680 driver by Bosch [BME680_driver](https://github.com/BoschSensortec/BME680_driver) to calculate IAQ (Indoor Air Quality)
 * https://github.com/jorisvervuurt/jvsbme680
+* The original IAQ value (0-500) is shown as a fake VOCDensity characteristic without available history
 
 Limitations:
 * Only supports storage "fs" right now
