@@ -9,7 +9,7 @@ Uses
 
 Limitations:
 * Only supports storage "fs" right now
-* Only uses eve fake history service (https://github.com/simont77/fakegato-history): accessory does not show up in Home app, only in Eve app
+* Since it is based on the [fakegato-history](https://github.com/simont77/fakegato-history) library the accessory only shows up in the Eve app and not in Apple Home.
 
 Uses heuristic factor to convert between Bosch BSEC IAQ (Indoor Air Quality) and Eve Co2 ppm:
 
