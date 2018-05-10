@@ -3,3 +3,7 @@ node_modules/
 package-lock.json
 publish.sh
 npm-debug.log
+port_forward.sh
+yarn-error.log
+push.sh
+lib/bsec_bme680
