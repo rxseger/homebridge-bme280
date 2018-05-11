@@ -11,6 +11,11 @@ const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
 
+  // https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/4
+  // compensation:
+  let bsecIAQTempCompensation = -0.4; // or 0.7 ?
+  let bsecIAQHumidityCompensation = 4.0;
+
 
 let Service: HAPNodeJS.Service;
 let Characteristic: HAPNodeJS.Characteristic;
@@ -79,6 +84,12 @@ module.exports = (homebridge) => {
 class BME680Plugin {
 
 
+  useBsecLib: any;
+  toPpm(gas_resistance: number): number {
+    // dummy implementation
+    return PPM_OFFSET + (CO2_MAX_VALUE - PPM_OFFSET) * gas_resistance / 1000000;
+  }
+
   iaqProcess: ChildProcess;
   loggingService: any;
   airQualitySensor: any; //AirQualitySensor;
@@ -104,6 +115,8 @@ class BME680Plugin {
   constructor(private log, config) {
     this.log = log;
     this.name = config.name;
+    this.useBsecLib = config.useBsecLib || false;
+
     this.name_temperature = config.name_temperature || this.name;
     this.name_humidity = config.name_humidity || this.name;
     this.name_air_quality = config.name_air_quality || this.name;
@@ -129,7 +142,9 @@ class BME680Plugin {
       // Constants.I2CAddress.I2CA_PRIMARY
       this.log("init bme680 sensor ...");
       // TODO: consider this.options.i2cAddress
-      this.sensor = new bme680_sensor.BME680();
+      if (!this.useBsecLib) {
+        this.sensor = new bme680_sensor.BME680();
+      }
       this.log("initialized bme680 sensor")
     } catch (ex) {
       this.log("bme680 initialization failed:", ex);
@@ -186,7 +201,11 @@ class BME680Plugin {
         disableTimer: true, // timer is not triggered; therefore disabling timer and relying own interval updates
         filename: this.name + ".json"
       });
-    this.spawnIAQProcess();
+    if (this.useBsecLib) {
+      this.spawnIAQProcess();
+    } else {
+      this.ensurePolling();
+    }
 
   }
 
@@ -201,112 +220,128 @@ class BME680Plugin {
     setInterval(this.devicePolling.bind(this), this.refresh * 1000);
   }
 
-  devicePolling() {
-    debug("Polling BME680: " + new Date(Date.now()).toLocaleString());
-    if (this.sensor) {
-      this.sensor.read()
-        .then(data => {
-          let defaultIAQ = 50;
-          const event: RoomEvent = {
-            time: moment().unix(),
-            temp: roundInt(data.temperature),
-            pressure: roundInt(data.pressure),
-            humidity: roundInt(data.humidity),
-            ppm: PPM_OFFSET // UNKNOWN
-          };
-
-          if (this.iaqData) {
-            // IAQ -> eve ppm 
-            event.ppm = PPM_OFFSET + this.iaqData.iaq * FACTOR_BSEC_IAQ_EVE_PPM;
-            this.log(`iaq: ${this.iaqData.iaq}, eve quality: ${event.ppm} ppm`);
-          }
-          this.log(event);
-
-          this.loggingService.addEntry(event);
-
-          if (this.spreadsheetId) {
-            this.log_event_counter = this.log_event_counter + 1;
-            if (this.log_event_counter > 59) {
-              this.logger.storeBME(this.name, 0, roundInt(data.temperature), roundInt(data.humidity), roundInt(data.pressure));
-              this.log_event_counter = 0;
-            }
-          }
-          let qualityDescription;
-          let homeKitQuality;
-          let ppm = event.ppm;
-
-          // if (iaq >= 0 && iaq < 50) {
-          //   homeKitQuality = 1;
-          //   qualityDescription = "good";
-          // } else if (iaq >= 50 && iaq < 100) {
-          //   homeKitQuality = 2;
-          //   qualityDescription = "average";
-          // } else if (iaq >= 100 && iaq < 150) {
-          //   homeKitQuality = 3;
-          //   qualityDescription = "little bad";
-          // } else if (iaq >= 150 && iaq < 200) {
-          //   homeKitQuality = 4;
-          //   qualityDescription = "bad";
-          // } else if (iaq >= 200 && iaq < 300) {
-          //   homeKitQuality = 4;
-          //   qualityDescription = "worse";
-          // } else if (iaq >= 300) {
-          //   homeKitQuality = 5;
-          //   qualityDescription = "very bad";
-          // }
-
-          if (ppm >= 450 && ppm < 700) {
-            homeKitQuality = 1;
-            qualityDescription = "good";
-          } else if (ppm >= 700 && ppm < 1100) {
-            homeKitQuality = 2;
-            qualityDescription = "average";
-          } else if (ppm >= 1100 && ppm < 1600) {
-            homeKitQuality = 3;
-            qualityDescription = "little bad";
-          } else if (ppm >= 1600 && ppm < 2100) {
-            homeKitQuality = 4;
-            qualityDescription = "bad";
-          } else if (ppm >= 2100) {
-            homeKitQuality = 5;
-          }
-
-          this.log(`iaq: ${homeKitQuality} ${qualityDescription}`)
-          this.temperatureService
-            .setCharacteristic(Characteristic.CurrentTemperature, roundInt(data.temperature));
-          this.temperatureService
-            .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, roundInt(data.pressure));
-          this.humidityService
-            .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(data.humidity));
-          this.airQualitySensor
-            .setCharacteristic(EveAirQualityPpmCharacteristic, roundInt(event.ppm));
-
-            // Optional
-          if (this.iaqData) {
-            this.airQualitySensor
-              .setCharacteristic(Characteristic.VOCDensity, roundInt(this.iaqData.iaq));
-          }
-
-          // Characteristic.AirQuality.UNKNOWN = 0;
-          // Characteristic.AirQuality.EXCELLENT = 1;
-          // Characteristic.AirQuality.GOOD = 2;
-          // Characteristic.AirQuality.FAIR = 3;
-          // Characteristic.AirQuality.INFERIOR = 4;
-          // Characteristic.AirQuality.POOR = 5;
-          this.airQualitySensor
-            .setCharacteristic(Characteristic.AirQuality, homeKitQuality); // 1(EXCELLENT) 2 (GOOD)  3 (FAIR) 4 (INFERIOR ) 5 (POOR)
-        })
-        .catch(err => {
-          this.log(`BME read error: ${err}`);
-          debug(err.stack);
-          if (this.spreadsheetId) {
-            this.logger.storeBME(this.name, 1, -999, -999, -999);
-          }
-
-        });
+  read(): Promise<RoomEvent> {
+    if (this.iaqData) {
+      return Promise.resolve(
+        this.bsecResultsToEvent());
     } else {
-      this.log("Error: bme680 Not Initalized");
+      return this.sensor.read().then(data => {
+        debug("Polling BME680: " + new Date(Date.now()).toLocaleString());
+        debug(data);
+        return {
+          time: moment().unix(),
+          temp: roundInt(data.temperature),
+          pressure: roundInt(data.pressure),
+          humidity: roundInt(data.humidity),
+          ppm: this.toPpm(data.gasResistance) // UNKNOWN
+        };
+      });
     }
+  }
+
+  private bsecResultsToEvent(): RoomEvent {
+
+    return {
+      time: moment().unix(),
+      temp: roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation),
+      humidity: roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation),
+      pressure: roundInt(this.iaqData.pressure),
+      ppm: PPM_OFFSET + this.iaqData.iaq * FACTOR_BSEC_IAQ_EVE_PPM
+    };
+  }
+
+  devicePolling() {
+
+    this.read().then((event) => {
+      this.log(event);
+
+      this.loggingService.addEntry(event);
+
+      if (this.spreadsheetId) {
+        this.log_event_counter = this.log_event_counter + 1;
+        if (this.log_event_counter > 59) {
+          this.logger.storeBME(this.name, 0, event.temp, event.humidity, event.pressure);
+          this.log_event_counter = 0;
+        }
+      }
+      let qualityDescription;
+      let homeKitQuality;
+      let ppm = event.ppm;
+
+      // if (iaq >= 0 && iaq < 50) {
+      //   homeKitQuality = 1;
+      //   qualityDescription = "good";
+      // } else if (iaq >= 50 && iaq < 100) {
+      //   homeKitQuality = 2;
+      //   qualityDescription = "average";
+      // } else if (iaq >= 100 && iaq < 150) {
+      //   homeKitQuality = 3;
+      //   qualityDescription = "little bad";
+      // } else if (iaq >= 150 && iaq < 200) {
+      //   homeKitQuality = 4;
+      //   qualityDescription = "bad";
+      // } else if (iaq >= 200 && iaq < 300) {
+      //   homeKitQuality = 4;
+      //   qualityDescription = "worse";
+      // } else if (iaq >= 300) {
+      //   homeKitQuality = 5;
+      //   qualityDescription = "very bad";
+      // }
+
+      if (ppm >= 450 && ppm < 700) {
+        homeKitQuality = 1;
+        qualityDescription = "good";
+      } else if (ppm >= 700 && ppm < 1100) {
+        homeKitQuality = 2;
+        qualityDescription = "average";
+      } else if (ppm >= 1100 && ppm < 1600) {
+        homeKitQuality = 3;
+        qualityDescription = "little bad";
+      } else if (ppm >= 1600 && ppm < 2100) {
+        homeKitQuality = 4;
+        qualityDescription = "bad";
+      } else if (ppm >= 2100) {
+        homeKitQuality = 5;
+      }
+
+      this.log(`iaq: ${homeKitQuality} ${qualityDescription}`)
+      this.updateSensors(event);
+
+      // Optional
+      if (this.iaqData) {
+        this.airQualitySensor
+          .setCharacteristic(Characteristic.VOCDensity, roundInt(this.iaqData.iaq));
+      }
+
+      // Characteristic.AirQuality.UNKNOWN = 0;
+      // Characteristic.AirQuality.EXCELLENT = 1;
+      // Characteristic.AirQuality.GOOD = 2;
+      // Characteristic.AirQuality.FAIR = 3;
+      // Characteristic.AirQuality.INFERIOR = 4;
+      // Characteristic.AirQuality.POOR = 5;
+      this.airQualitySensor
+        .setCharacteristic(Characteristic.AirQuality, homeKitQuality); // 1(EXCELLENT) 2 (GOOD)  3 (FAIR) 4 (INFERIOR ) 5 (POOR)
+    })
+      .catch(err => {
+        this.log(`BME read error: ${err}`);
+        debug(err.stack);
+        if (this.spreadsheetId) {
+          this.logger.storeBME(this.name, 1, -999, -999, -999);
+        }
+
+      });
+  }
+
+  private updateSensors(event: RoomEvent) {
+    this.temperatureService
+      .setCharacteristic(Characteristic.CurrentTemperature, event.temp);
+    this.temperatureService
+      .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, event.pressure);
+    this.humidityService
+      .setCharacteristic(Characteristic.CurrentRelativeHumidity, event.humidity);
+    this.airQualitySensor
+      .setCharacteristic(EveAirQualityPpmCharacteristic, event.ppm);
+
   }
 
   getServices() {
@@ -336,6 +371,9 @@ class BME680Plugin {
    * @returns 
    * @memberof BME680Plugin
    */
+
+  readCounter = 0;
+
   spawnIAQProcess() {
     if (this.iaqProcess) {
       return;
@@ -344,7 +382,7 @@ class BME680Plugin {
     this.log(process.cwd())
 
     // ensure that bsec_iaq.config is located in storagePath (e.g. ~./homebridge) and is writable ( for bsec_iaq.state):
-    this.iaqProcess = spawn(__dirname + '/../lib/bsec_bme680', [],
+    this.iaqProcess = spawn(homebridgeRef.user.storagePath() + '/bsec_bme680', [],
       {
         cwd: homebridgeRef.user.storagePath(),
         env: process.env
@@ -369,6 +407,11 @@ class BME680Plugin {
     this.iaqProcess.stdout.on('data', (data: string) => {
       try {
         this.iaqData = JSON.parse(data);
+        this.readCounter++;
+        if (this.readCounter % 10 == 0) { // log and push every ~ 30 sec
+          this.updateSensors(this.bsecResultsToEvent());
+          this.log(`${this.iaqData.raw_temperature} (${roundInt(this.iaqData.raw_temperature+ bsecIAQTempCompensation)}) C, ${this.iaqData.raw_humidity} (${roundInt(this.iaqData.raw_humidity+ bsecIAQHumidityCompensation)}) %RH, ${this.iaqData.iaq} IAQ`);
+        }
         this.ensurePolling();
       } catch (e) {
         this.log("unable to parse iaq result: " + e);
@@ -394,7 +437,7 @@ class BME680Plugin {
 }
 
 function roundInt(string) {
-  return Math.round(parseFloat(string) * 10) / 10;
+  return Math.round(parseFloat(string) * 100) / 100;
 }
 
 
@@ -405,6 +448,8 @@ function debug(val: any) {
 interface IAQResult {
   "iaq": number;
   "iaq_accuracy": number;
+  "raw_temperature": number;
+  "raw_humidity": number;
   "temperature": number;
   "humidity": number;
   "pressure": number;
@@ -418,3 +463,4 @@ interface RoomEvent {
   humidity: number;
   ppm: number;
 }
+

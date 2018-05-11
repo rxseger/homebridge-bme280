@@ -97,5 +97,5 @@ declare interface BME680Result {
 	temperature:number;
 	pressure:number;
 	humidity:number;
-	gas_resistance:number;
+	gasResistance:number;
 }

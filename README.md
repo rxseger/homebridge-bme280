@@ -48,9 +48,8 @@ Untested!
 1.	Install Homebridge using `npm install -g homebridge`
 2.	Install this plugin `npm install -g trho/homebridge-bme680`
 3.  Compile bsec_bme680 executable by following https://github.com/trho/bsec_bme680_linux 
-4.  *Copy bsec_bme680 to global node_modules/homebridge-bme680/lib*
-5.  *Copy bsec_iaq.config to homebridge storagePath (e.g. ~./homebridge)*
-4.	Update your configuration file - see below for an example
+4.  *Copy bsec_bme680 and bsec_iaq.config to homebridge storagePath (e.g. ~./homebridge)*
+5.	Update your configuration file - see below for an example
 
 Connect the BME680 chip to the I2C bus
 
@@ -76,6 +75,7 @@ Example configuration:
             "name_temperature": "Temperature",
             "name_humidity": "Humidity",
             "name_air_quality": "Air Quality",
+            "useBsecLib": true,
             "options": {
               "i2cBusNo": 1,
               "i2cAddress": "0x76"
