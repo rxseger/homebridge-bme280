@@ -27,7 +27,6 @@ temperature/humidity/barometric pressure sensor service plugin for [Homebridge](
 [![NPM Downloads](https://img.shields.io/npm/dm/homebridge-bme280.svg?style=flat)](https://npmjs.org/package/homebridge-bme280)
 
 * Display of temperature, humidity and Barometric Pressure from a BME280 connected to a RaspberryPI.
-* Archives results every hour to a google spreadsheet
 * Support the graphing feature of the Eve app for trends
 
 Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
@@ -63,7 +62,6 @@ Connect the BME680 chip to the I2C bus
 * `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 * `spreadsheetId` ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567". (TODO: not implemented, yet)
 
-If you get an I/O error, make sure the I2C address is correct (usually 0x76 or 0x77 depending on a jumper).
 
 Example configuration:
 
@@ -74,17 +72,23 @@ Example configuration:
             "name": "Sensor",
             "name_temperature": "Temperature",
             "name_humidity": "Humidity",
-            "name_air_quality": "Air Quality",
             "useBsecLib": true,
-            "options": {
-              "i2cBusNo": 1,
-              "i2cAddress": "0x76"
-            }
+            "name_air_quality": "Air Quality",
+            "useBsecLib": true
         }
     ]
 ```
 
-This plugin creates two services: TemperatureSensor and HumiditySensor.
+The option "useBsecLib" only works if you placed compiled bsec_bme680 in homebridge storagePath.
+By omitting this option this plugin relies on jvsbme680's sensor readings. In this case IAQ is just a dummy value.
+There is an advantage using this simpler solution:
+The temperature and humidity readings are much more precise in this case and no callibration & compensation is necessary in this case.
+Once the compensation is this configurable I will elaborate this further.
+For now see kvaruni's comment on callibration & compensation for gas readings:
+https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
+
+
+This plugin creates three services: TemperatureSensor, HumiditySensor and AirQualitySensor.
 
 ## Optional - Enable access to Google Sheets to log data
 
