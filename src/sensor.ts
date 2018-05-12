@@ -11,10 +11,12 @@ const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
 
-  // https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/4
-  // compensation:
-  let bsecIAQTempCompensation = -0.4; // or 0.7 ?
-  let bsecIAQHumidityCompensation = 4.0;
+// temperatur and humidity compensation when reading IAQ values with heated sensor:
+// see also kvaruni's comment on callibration & compensation:
+// https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
+// TODO: make configurable:
+let bsecIAQTempCompensation = -0.5; // or 0.7 ?
+let bsecIAQHumidityCompensation = 4.0;
 
 
 let Service: HAPNodeJS.Service;
@@ -26,7 +28,7 @@ let EveAirQualityPpmCharacteristic;
 let EveAirQualityUnknownCharacteristic;
 
 // TODO: make configurable
-const REFRESH_TIME_IN_MINUTES = 5;
+const REFRESH_TIME_IN_MINUTES = 10;
 
 const CO2_MAX_VALUE = 3000; // I am assuming that iaq 500 ~ 3000 ppm
 const BSEC_IAQ_MAX = 500;
@@ -217,7 +219,14 @@ class BME680Plugin {
     }
     this.polling = true;
     this.devicePolling();
-    setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+
+    let now = new Date();
+    let firstPollAlignedWithHour = this.refresh - (now.getMinutes() * 60 + now.getSeconds()) % (this.refresh);
+    this.log(`starting first poll in ${Math.round(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
+    setTimeout(() => {
+      setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+    }, firstPollAlignedWithHour);
+
   }
 
   read(): Promise<RoomEvent> {
@@ -233,7 +242,7 @@ class BME680Plugin {
           temp: roundInt(data.temperature),
           pressure: roundInt(data.pressure),
           humidity: roundInt(data.humidity),
-          ppm: this.toPpm(data.gasResistance) // UNKNOWN
+          ppm: this.toPpm(data.gasResistance) // heuristic
         };
       });
     }
@@ -253,9 +262,15 @@ class BME680Plugin {
   devicePolling() {
 
     this.read().then((event) => {
-      this.log(event);
 
-      this.loggingService.addEntry(event);
+      if (this.aggMeasurements) {
+        this.log(this.aggMeasurements);
+        this.aggMeasurements.time = moment().unix();
+        this.loggingService.addEntry(this.aggMeasurements);
+      } else {
+        this.log(event);
+        this.loggingService.addEntry(event);
+      }
 
       if (this.spreadsheetId) {
         this.log_event_counter = this.log_event_counter + 1;
@@ -305,7 +320,11 @@ class BME680Plugin {
       }
 
       this.log(`iaq: ${homeKitQuality} ${qualityDescription}`)
-      this.updateSensors(event);
+      if (this.aggMeasurements) {
+        this.updateSensors(this.aggMeasurements);
+      } else {
+        this.updateSensors(event);
+      }
 
       // Optional
       if (this.iaqData) {
@@ -332,7 +351,13 @@ class BME680Plugin {
       });
   }
 
+  MAX_MEASUREMENT_COUNT = 20; // collect data for 1 min (3*20 sec)
+
+  aggMeasurements: RoomEvent;
+  sumsMeasurements: RoomEvent;
+
   private updateSensors(event: RoomEvent) {
+
     this.temperatureService
       .setCharacteristic(Characteristic.CurrentTemperature, event.temp);
     this.temperatureService
@@ -341,6 +366,33 @@ class BME680Plugin {
       .setCharacteristic(Characteristic.CurrentRelativeHumidity, event.humidity);
     this.airQualitySensor
       .setCharacteristic(EveAirQualityPpmCharacteristic, event.ppm);
+
+  }
+
+  private aggregateMeasurements(event: RoomEvent) {
+    if (!this.sumsMeasurements) {
+      this.sumsMeasurements = event;
+    } else {
+      this.sumsMeasurements.temp += event.temp;
+      this.sumsMeasurements.humidity += event.humidity;
+      this.sumsMeasurements.pressure += event.pressure;
+      this.sumsMeasurements.ppm += event.ppm;
+    }
+    if (this.readCounter % this.MAX_MEASUREMENT_COUNT == 0) {  // log and push aggregated values every ~ 30 sec
+      this.sumsMeasurements.time = event.time;
+      this.sumsMeasurements.temp = roundInt(this.sumsMeasurements.temp / this.MAX_MEASUREMENT_COUNT);
+      this.sumsMeasurements.humidity = roundInt(this.sumsMeasurements.humidity / this.MAX_MEASUREMENT_COUNT);
+      this.sumsMeasurements.pressure = roundInt(this.sumsMeasurements.pressure / this.MAX_MEASUREMENT_COUNT);
+      this.sumsMeasurements.ppm = roundInt(this.sumsMeasurements.ppm / this.MAX_MEASUREMENT_COUNT);
+      this.aggMeasurements = this.sumsMeasurements;
+
+      let agg = this.aggMeasurements;
+      this.sumsMeasurements = undefined;
+
+      this.updateSensors(this.aggMeasurements);
+      this.log(`last: ${agg.temp} (raw: ${this.iaqData.raw_temperature}, comp: ${roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation)}) C, ${agg.humidity} (raw: ${this.iaqData.raw_humidity}, comp: ${roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation)}) %RH, ${agg.ppm} ppm, IAQ: ${this.iaqData.iaq} IAQ, IAQ accuray:  ${this.iaqData.iaq_accuracy}`);
+    }
+
 
   }
 
@@ -408,10 +460,10 @@ class BME680Plugin {
       try {
         this.iaqData = JSON.parse(data);
         this.readCounter++;
-        if (this.readCounter % 10 == 0) { // log and push every ~ 30 sec
-          this.updateSensors(this.bsecResultsToEvent());
-          this.log(`${this.iaqData.raw_temperature} (${roundInt(this.iaqData.raw_temperature+ bsecIAQTempCompensation)}) C, ${this.iaqData.raw_humidity} (${roundInt(this.iaqData.raw_humidity+ bsecIAQHumidityCompensation)}) %RH, ${this.iaqData.iaq} IAQ`);
-        }
+
+        const event = this.bsecResultsToEvent();
+        this.aggregateMeasurements(event);
+
         this.ensurePolling();
       } catch (e) {
         this.log("unable to parse iaq result: " + e);
@@ -446,15 +498,15 @@ function debug(val: any) {
 }
 
 interface IAQResult {
-  "iaq": number;
-  "iaq_accuracy": number;
-  "raw_temperature": number;
-  "raw_humidity": number;
-  "temperature": number;
-  "humidity": number;
-  "pressure": number;
-  "gas_pressure": number;
-  "bsec_status": number;
+  iaq: number;
+  iaq_accuracy: number;
+  raw_temperature: number;
+  raw_humidity: number;
+  temperature: number;
+  humidity: number;
+  pressure: number;
+  gas_pressure: number;
+  bsec_status: number;
 }
 interface RoomEvent {
   time: number;

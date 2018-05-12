@@ -18,9 +18,11 @@
     const moment = require('moment');
     var os = require("os");
     var hostname = os.hostname();
-    // https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/4
-    // compensation:
-    let bsecIAQTempCompensation = -0.4; // or 0.7 ?
+    // temperatur and humidity compensation when reading IAQ values with heated sensor:
+    // see also kvaruni's comment on callibration & compensation:
+    // https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
+    // TODO: make configurable:
+    let bsecIAQTempCompensation = -0.5; // or 0.7 ?
     let bsecIAQHumidityCompensation = 4.0;
     let Service;
     let Characteristic;
@@ -29,7 +31,7 @@
     let EveAirQualityPpmCharacteristic;
     let EveAirQualityUnknownCharacteristic;
     // TODO: make configurable
-    const REFRESH_TIME_IN_MINUTES = 5;
+    const REFRESH_TIME_IN_MINUTES = 10;
     const CO2_MAX_VALUE = 3000; // I am assuming that iaq 500 ~ 3000 ppm
     const BSEC_IAQ_MAX = 500;
     const PPM_OFFSET = 450;
@@ -75,6 +77,7 @@
         constructor(log, config) {
             this.log = log;
             this.polling = false;
+            this.MAX_MEASUREMENT_COUNT = 20; // collect data for 1 min (3*20 sec)
             /**
              *
              * IAQ Index Air Quality
@@ -189,7 +192,12 @@
             }
             this.polling = true;
             this.devicePolling();
-            setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+            let now = new Date();
+            let firstPollAlignedWithHour = this.refresh - (now.getMinutes() * 60 + now.getSeconds()) % (this.refresh);
+            this.log(`starting first poll in ${Math.round(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
+            setTimeout(() => {
+                setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+            }, firstPollAlignedWithHour);
         }
         read() {
             if (this.iaqData) {
@@ -204,7 +212,7 @@
                         temp: roundInt(data.temperature),
                         pressure: roundInt(data.pressure),
                         humidity: roundInt(data.humidity),
-                        ppm: this.toPpm(data.gasResistance) // UNKNOWN
+                        ppm: this.toPpm(data.gasResistance) // heuristic
                     };
                 });
             }
@@ -220,8 +228,15 @@
         }
         devicePolling() {
             this.read().then((event) => {
-                this.log(event);
-                this.loggingService.addEntry(event);
+                if (this.aggMeasurements) {
+                    this.log(this.aggMeasurements);
+                    this.aggMeasurements.time = moment().unix();
+                    this.loggingService.addEntry(this.aggMeasurements);
+                }
+                else {
+                    this.log(event);
+                    this.loggingService.addEntry(event);
+                }
                 if (this.spreadsheetId) {
                     this.log_event_counter = this.log_event_counter + 1;
                     if (this.log_event_counter > 59) {
@@ -271,7 +286,12 @@
                     homeKitQuality = 5;
                 }
                 this.log(`iaq: ${homeKitQuality} ${qualityDescription}`);
-                this.updateSensors(event);
+                if (this.aggMeasurements) {
+                    this.updateSensors(this.aggMeasurements);
+                }
+                else {
+                    this.updateSensors(event);
+                }
                 // Optional
                 if (this.iaqData) {
                     this.airQualitySensor
@@ -304,6 +324,29 @@
             this.airQualitySensor
                 .setCharacteristic(EveAirQualityPpmCharacteristic, event.ppm);
         }
+        aggregateMeasurements(event) {
+            if (!this.sumsMeasurements) {
+                this.sumsMeasurements = event;
+            }
+            else {
+                this.sumsMeasurements.temp += event.temp;
+                this.sumsMeasurements.humidity += event.humidity;
+                this.sumsMeasurements.pressure += event.pressure;
+                this.sumsMeasurements.ppm += event.ppm;
+            }
+            if (this.readCounter % this.MAX_MEASUREMENT_COUNT == 0) { // log and push aggregated values every ~ 30 sec
+                this.sumsMeasurements.time = event.time;
+                this.sumsMeasurements.temp = roundInt(this.sumsMeasurements.temp / this.MAX_MEASUREMENT_COUNT);
+                this.sumsMeasurements.humidity = roundInt(this.sumsMeasurements.humidity / this.MAX_MEASUREMENT_COUNT);
+                this.sumsMeasurements.pressure = roundInt(this.sumsMeasurements.pressure / this.MAX_MEASUREMENT_COUNT);
+                this.sumsMeasurements.ppm = roundInt(this.sumsMeasurements.ppm / this.MAX_MEASUREMENT_COUNT);
+                this.aggMeasurements = this.sumsMeasurements;
+                let agg = this.aggMeasurements;
+                this.sumsMeasurements = undefined;
+                this.updateSensors(this.aggMeasurements);
+                this.log(`last: ${agg.temp} (raw: ${this.iaqData.raw_temperature}, comp: ${roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation)}) C, ${agg.humidity} (raw: ${this.iaqData.raw_humidity}, comp: ${roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation)}) %RH, ${agg.ppm} ppm, IAQ: ${this.iaqData.iaq} IAQ, IAQ accuray:  ${this.iaqData.iaq_accuracy}`);
+            }
+        }
         getServices() {
             return [this.informationService, this.temperatureService, this.humidityService, this.airQualitySensor, this.loggingService];
         }
@@ -334,10 +377,8 @@
                 try {
                     this.iaqData = JSON.parse(data);
                     this.readCounter++;
-                    if (this.readCounter % 10 == 0) { // log and push every ~ 30 sec
-                        this.updateSensors(this.bsecResultsToEvent());
-                        this.log(`${this.iaqData.raw_temperature} (${roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation)}) C, ${this.iaqData.raw_humidity} (${roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation)}) %RH, ${this.iaqData.iaq} IAQ`);
-                    }
+                    const event = this.bsecResultsToEvent();
+                    this.aggregateMeasurements(event);
                     this.ensurePolling();
                 }
                 catch (e) {
