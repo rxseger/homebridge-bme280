@@ -15,7 +15,7 @@ var hostname = os.hostname();
 // see also kvaruni's comment on callibration & compensation:
 // https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
 // TODO: make configurable:
-let bsecIAQTempCompensation = -0.5; // or 0.7 ?
+let bsecIAQTempCompensation = -0.35; // or 0.7 ?
 let bsecIAQHumidityCompensation = 4.0;
 
 
@@ -151,7 +151,7 @@ class BME680Plugin {
     } catch (ex) {
       this.log("bme680 initialization failed:", ex);
     }
-    this.devicePolling.bind(this);
+    this.updateHistoryAndCurrentServices.bind(this);
 
     this.informationService = new Service.AccessoryInformation(undefined, undefined, undefined);
 
@@ -218,15 +218,22 @@ class BME680Plugin {
       return;
     }
     this.polling = true;
-    this.devicePolling();
+    //this.devicePolling();
 
+    this.scheduleUpdate();
+  }
+
+  private scheduleUpdate() {
     let now = new Date();
     let firstPollAlignedWithHour = this.refresh - (now.getMinutes() * 60 + now.getSeconds()) % (this.refresh);
-    this.log(`starting first poll in ${Math.round(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
-    setTimeout(() => {
-      setInterval(this.devicePolling.bind(this), this.refresh * 1000);
-    }, firstPollAlignedWithHour);
+    this.log(`scheduled history update in ${Math.round(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
 
+    // update sensors, but not history:
+    this.updateHistoryAndCurrentServices(false);
+    setTimeout(() => {
+      this.updateHistoryAndCurrentServices();
+      this.scheduleUpdate();
+    }, firstPollAlignedWithHour * 1000);
   }
 
   read(): Promise<RoomEvent> {
@@ -259,24 +266,26 @@ class BME680Plugin {
     };
   }
 
-  devicePolling() {
+  updateHistoryAndCurrentServices(updateHistory = true) {
 
     this.read().then((event) => {
 
-      if (this.aggMeasurements) {
-        this.log(this.aggMeasurements);
-        this.aggMeasurements.time = moment().unix();
-        this.loggingService.addEntry(this.aggMeasurements);
-      } else {
-        this.log(event);
-        this.loggingService.addEntry(event);
-      }
+      if (updateHistory) {
+        if (this.aggMeasurements) {
+          this.log(this.aggMeasurements);
+          this.aggMeasurements.time = moment().unix();
+          this.loggingService.addEntry(this.aggMeasurements);
+        } else {
+          this.log(event);
+          this.loggingService.addEntry(event);
+        }
 
-      if (this.spreadsheetId) {
-        this.log_event_counter = this.log_event_counter + 1;
-        if (this.log_event_counter > 59) {
-          this.logger.storeBME(this.name, 0, event.temp, event.humidity, event.pressure);
-          this.log_event_counter = 0;
+        if (this.spreadsheetId) {
+          this.log_event_counter = this.log_event_counter + 1;
+          if (this.log_event_counter > 59) {
+            this.logger.storeBME(this.name, 0, event.temp, event.humidity, event.pressure);
+            this.log_event_counter = 0;
+          }
         }
       }
       let qualityDescription;
