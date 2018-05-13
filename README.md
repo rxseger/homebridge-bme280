@@ -73,6 +73,8 @@ Example configuration:
             "name_temperature": "Temperature",
             "name_humidity": "Humidity",
             "useBsecLib": true,
+            "bsecTempCompensation": -0.35,
+            "bsecHumidityCompensation": 4.0,
             "name_air_quality": "Air Quality",
             "useBsecLib": true
         }

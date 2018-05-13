@@ -11,13 +11,6 @@ const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
 
-// temperatur and humidity compensation when reading IAQ values with heated sensor:
-// see also kvaruni's comment on callibration & compensation:
-// https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
-// TODO: make configurable:
-let bsecIAQTempCompensation = -0.35; // or 0.7 ?
-let bsecIAQHumidityCompensation = 4.0;
-
 
 let Service: HAPNodeJS.Service;
 let Characteristic: HAPNodeJS.Characteristic;
@@ -86,12 +79,19 @@ module.exports = (homebridge) => {
 class BME680Plugin {
 
 
-  useBsecLib: any;
   toPpm(gas_resistance: number): number {
     // dummy implementation
     return PPM_OFFSET + (CO2_MAX_VALUE - PPM_OFFSET) * gas_resistance / 1000000;
   }
+  
+  // temperature and humidity compensation when reading IAQ values with heated sensor:
+// see also kvaruni's comment on callibration & compensation:
+// https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
+// TODO: make configurable:
+  bsecTempCompensation = -0.35; // or 0.7 ?
+  bsecHumidityCompensation = 4.0;
 
+  useBsecLib: boolean;
   iaqProcess: ChildProcess;
   loggingService: any;
   airQualitySensor: any; //AirQualitySensor;
@@ -118,6 +118,11 @@ class BME680Plugin {
     this.log = log;
     this.name = config.name;
     this.useBsecLib = config.useBsecLib || false;
+    this.bsecTempCompensation = config.bsecTempCompensation || 0;
+    this.bsecHumidityCompensation = config.bsecHumidityCompensation || 0;
+    if(config.bsecTempCompensation) {
+      this.log(`Compensations: ${this.bsecTempCompensation} C, ${this.bsecHumidityCompensation} %RH`);
+    }
 
     this.name_temperature = config.name_temperature || this.name;
     this.name_humidity = config.name_humidity || this.name;
@@ -226,7 +231,7 @@ class BME680Plugin {
   private scheduleUpdate() {
     let now = new Date();
     let firstPollAlignedWithHour = this.refresh - (now.getMinutes() * 60 + now.getSeconds()) % (this.refresh);
-    this.log(`scheduled history update in ${Math.round(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
+    this.log(`scheduled history update in ${Math.floor(firstPollAlignedWithHour / 60)} min, ${firstPollAlignedWithHour % 60} sec`);
 
     // update sensors, but not history:
     this.updateHistoryAndCurrentServices(false);
@@ -259,8 +264,8 @@ class BME680Plugin {
 
     return {
       time: moment().unix(),
-      temp: roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation),
-      humidity: roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation),
+      temp: roundInt(this.iaqData.raw_temperature + this.bsecTempCompensation),
+      humidity: roundInt(this.iaqData.raw_humidity + this.bsecHumidityCompensation),
       pressure: roundInt(this.iaqData.pressure),
       ppm: PPM_OFFSET + this.iaqData.iaq * FACTOR_BSEC_IAQ_EVE_PPM
     };
@@ -399,7 +404,7 @@ class BME680Plugin {
       this.sumsMeasurements = undefined;
 
       this.updateSensors(this.aggMeasurements);
-      this.log(`last: ${agg.temp} (raw: ${this.iaqData.raw_temperature}, comp: ${roundInt(this.iaqData.raw_temperature + bsecIAQTempCompensation)}) C, ${agg.humidity} (raw: ${this.iaqData.raw_humidity}, comp: ${roundInt(this.iaqData.raw_humidity + bsecIAQHumidityCompensation)}) %RH, ${agg.ppm} ppm, IAQ: ${this.iaqData.iaq} IAQ, IAQ accuray:  ${this.iaqData.iaq_accuracy}`);
+      this.log(`last: ${agg.temp} (raw: ${this.iaqData.raw_temperature}, comp: ${roundInt(this.iaqData.raw_temperature + this.bsecTempCompensation)}) C, ${agg.humidity} (raw: ${this.iaqData.raw_humidity}, comp: ${roundInt(this.iaqData.raw_humidity + this.bsecHumidityCompensation)}) %RH, ${agg.ppm} ppm, IAQ: ${this.iaqData.iaq} IAQ, IAQ accuray:  ${this.iaqData.iaq_accuracy}`);
     }
 
 
