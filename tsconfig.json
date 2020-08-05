@@ -1,0 +1,23 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "declaration": false,
+    "rootDir": "src",
+    "moduleResolution": "node",
+    "target": "es2015",
+    "module": "umd",
+    "types": [
+      // add node as an option
+      "node"
+   ],
+    "typeRoots": [
+      "node_modules/hap-nodejs",
+      "@types/node"
+    ],
+    "lib": [
+      "es2017"
+    ]
+  }
+}

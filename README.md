@@ -1,58 +1,100 @@
-# homebridge-bme280
+# homebridge-bme680
 
-[Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280)
+EXPERIMENTAL fork from https://github.com/rxseger/homebridge-bme280 providing initial bme680 support for homebridge.
+
+Uses 
+* https://github.com/trho/bsec_bme680_linux (fork from https://github.com/alexh-name/bsec_bme680_linux with json output) which relies on the closed source BME680 driver by Bosch [BME680_driver](https://github.com/BoschSensortec/BME680_driver) to calculate IAQ (Indoor Air Quality)
+* https://github.com/jorisvervuurt/jvsbme680
+* The original IAQ value (0-500) is shown as a fake VOCDensity characteristic without available history
+
+Tested with Pimoroni's BME680 breakout board (https://shop.pimoroni.com/collections/electronics/products/bme680) 
+
+Limitations:
+* Only supports storage "fs", yet
+* i2c address is not configurable, yet 
+* Since it is based on the [fakegato-history](https://github.com/simont77/fakegato-history) library the accessory only shows up in the Eve app and not in Apple Home.
+
+Uses heuristic factor to convert between Bosch BSEC IAQ (Indoor Air Quality) and Eve Co2 ppm:
+
+const FACTOR_BSEC_IAQ_EVE_PPM = (CO2_MAX_VALUE - PPM_OFFSET) / BSEC_IAQ_MAX;
+
+Concrete values:
+const FACTOR_BSEC_IAQ_EVE_PPM = (3000 - 450) / 500;
+
+[Bosch BME680](https://www.bosch-sensortec.com/bst/products/all_products/bme680)
 temperature/humidity/barometric pressure sensor service plugin for [Homebridge](https://github.com/nfarina/homebridge).
 
 [![NPM Downloads](https://img.shields.io/npm/dm/homebridge-bme280.svg?style=flat)](https://npmjs.org/package/homebridge-bme280)
 
 * Display of temperature, humidity and Barometric Pressure from a BME280 connected to a RaspberryPI.
-* Archives results every hour to a google spreadsheet
 * Support the graphing feature of the Eve app for trends
 
 Uses [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
 
 # Build Instructions
 
-Detailed build instructions are available here. https://www.instructables.com/id/Connect-Your-RaspberryPI-to-the-BME280-Temperature/
+1. Init
+npm install
+2. Compile Typescript
+npm compile
+
+TODO
 
 ## Installation
-1.	Install Homebridge using `npm install -g homebridge`
-2.	Install this plugin `npm install -g homebridge-bme280`
-3.	Update your configuration file - see below for an example
 
-Connect the BME280 chip to the I2C bus
+Untested!
+
+1.	Install Homebridge using `npm install -g homebridge`
+2.	Install this plugin `npm install -g trho/homebridge-bme680`
+3.  Compile bsec_bme680 executable by following https://github.com/trho/bsec_bme680_linux 
+4.  *Copy bsec_bme680 and bsec_iaq.config to homebridge storagePath (e.g. ~./homebridge)*
+5.	Update your configuration file - see below for an example
+
+Connect the BME680 chip to the I2C bus
 
 ## Configuration
-* `accessory`: "BME280"
+* `accessory`: "BME680"
 * `name`: descriptive name
 * `name_temperature` (optional): descriptive name for the temperature sensor
 * `name_humidity` (optional): descriptive name for the humidity sensor
+* `name_air_quality` (optional): descriptive name for the air quality sensor
 * `refresh`: Optional, time interval for refreshing data in seconds, defaults to 60 seconds.
 * `options`: options for [bme280-sensor](https://www.npmjs.com/package/bme280-sensor)
-* `spreadsheetId` ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
+* `spreadsheetId` ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567". (TODO: not implemented, yet)
 
-If you get an I/O error, make sure the I2C address is correct (usually 0x76 or 0x77 depending on a jumper).
 
 Example configuration:
 
 ```json
     "accessories": [
         {
-            "accessory": "BME280",
+            "accessory": "BME680",
             "name": "Sensor",
             "name_temperature": "Temperature",
             "name_humidity": "Humidity",
-            "options": {
-              "i2cBusNo": 1,
-              "i2cAddress": "0x76"
-            }
+            "useBsecLib": true,
+            "bsecTempCompensation": -0.35,
+            "bsecHumidityCompensation": 4.0,
+            "name_air_quality": "Air Quality",
+            "useBsecLib": true
         }
     ]
 ```
 
-This plugin creates two services: TemperatureSensor and HumiditySensor.
+The option "useBsecLib" only works if you placed compiled bsec_bme680 in homebridge storagePath.
+By omitting this option this plugin relies on jvsbme680's sensor readings. In this case IAQ is just a dummy value.
+There is an advantage using this simpler solution:
+The temperature and humidity readings are much more precise in this case and no callibration & compensation is necessary in this case.
+Once the compensation is this configurable I will elaborate this further.
+For now see kvaruni's comment on callibration & compensation for gas readings:
+https://forums.pimoroni.com/t/bme680-observed-gas-ohms-readings/6608/5
+
+
+This plugin creates three services: TemperatureSensor, HumiditySensor and AirQualitySensor.
 
 ## Optional - Enable access to Google Sheets to log data
+
+TODO: not implemented, yet
 
 This presumes you already have a google account, and have access to google drive/sheets already
 
@@ -97,10 +139,17 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 * [homebridge-ds18b20](https://www.npmjs.com/package/homebridge-ds18b20)
 * [homebridge-dht-sensor](https://www.npmjs.com/package/homebridge-dht-sensor)
 * [homebridge-dht](https://www.npmjs.com/package/homebridge-dht)
+* [bsec_bme680_linux fork] https://github.com/trho/bsec_bme680_linux
+* https://github.com/rxseger/homebridge-bme280
+* https://github.com/jorisvervuurt/jvsbme680
+
 
 ## Credits
+* 
 * NorthernMan54 - Barometric Pressure and Device Polling
 * simont77 - History Service
+* alexh-name - C wrapper for BME680 sensor BSEC library
+* jorisvervuurt - Node.js module for Pimoroni's BME680 Breakout
 
 ## License
 
