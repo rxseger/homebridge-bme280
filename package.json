@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/KAWABATANorio/homebridge-am2320#readme",
   "dependencies": {
-    "i2c": "^0.2.3",
+    "i2c": "0.2.3",
     "lodash": "^4.17.4"
   }
 }
