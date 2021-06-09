@@ -1,14 +1,18 @@
 {
   "name": "homebridge-thermometer-am2320",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "AM2320 temperature/humidity sensor bridge for Homebridge: https://github.com/nfarina/homebridge\"",
-  "main": "sensor.js",
+  "main": "dist/accessory.js",
   "scripts": {
+    "clean": "rimraf ./dist",
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run build",
+    "postpublish": "npm run clean",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/KAWABATANorio/homebridge-am2320.git"
+  "author": "Norio KAWABATA",
+  "engines": {
+    "homebridge": ">=1.0.0"
   },
   "keywords": [
     "homebridge-plugin",
@@ -17,18 +21,27 @@
     "humidity",
     "sensor"
   ],
-  "author": "KAWABATA Norio",
-  "license": "MIT",
+  "license": "Apache",
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/KAWABATANorio/homebridge-am2320.git"
+  },
   "bugs": {
     "url": "https://github.com/KAWABATANorio/homebridge-am2320/issues"
   },
-  "engines": {
-    "node": ">=6.0.0",
-    "homebridge": ">=0.2.0"
-  },
   "homepage": "https://github.com/KAWABATANorio/homebridge-am2320#readme",
+  "devDependencies": {
+    "@types/node": "10.17.19",
+    "typescript": "^3.8.3",
+    "rimraf": "^3.0.2",
+    "homebridge": "^1.0.4"
+  },
   "dependencies": {
-    "i2c": "0.2.3",
-    "lodash": "^4.17.4"
+    "@types/lodash": "^4.14.165",
+    "lodash": "^4.17.20"
   }
 }
